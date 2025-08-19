@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Tabs, router, useRouter } from 'expo-router'
+import { Tabs, router, useRouter, useRootNavigationState } from 'expo-router'
 import { MaterialIcons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
 import Loader from '~/components/Loader'

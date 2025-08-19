@@ -99,7 +99,7 @@ const LoginScreen: React.FC = () => {
               <TextInput.Icon
                 icon={showPassword ? "eye-off" : "eye"}
                 onPress={() => setShowPassword(!showPassword)}
-                iconColor="#999999"
+                color="#999999"
               />
             }
           />
