@@ -27,12 +27,12 @@ const RoleSelectionScreen: React.FC = () => {
       description: 'Record patient visits, enter vital signs, and manage patient care',
       icon: 'medical-services'
     },
-    {
-      id: 'admin',
-      title: 'Administrator',
-      description: 'Manage users, oversee system operations, and view analytics',
-      icon: 'admin-panel-settings'
-    }
+    // {
+    //   id: 'admin',
+    //   title: 'Administrator',
+    //   description: 'Manage users, oversee system operations, and view analytics',
+    //   icon: 'admin-panel-settings'
+    // }
   ]
 
   return (
