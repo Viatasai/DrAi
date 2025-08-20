@@ -1,19 +1,25 @@
 import React, { useState } from 'react'
-import { View, StyleSheet, ScrollView, Alert, Dimensions, TouchableOpacity } from 'react-native'
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native'
 import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useAuth } from '../../contexts/AuthContext'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '../../utils/toast'
 
 const { width } = Dimensions.get('window')
 
-
-
-
 const SignUpScreen: React.FC = () => {
-  const { role } = useLocalSearchParams<{ role: string }>()
+  // ⭐ changed: read more params and compute helpers
+  const { role, as, return: returnToParam } = useLocalSearchParams<{
+    role: string;
+    as?: string;
+    return?: string;
+  }>()
+  const returnTo = typeof returnToParam === 'string' ? returnToParam : undefined
+  const launchedByDoctor = as === 'doctor'
+  console.log(launchedByDoctor)
+  
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -39,8 +45,6 @@ const SignUpScreen: React.FC = () => {
   const [licenseNumber, setLicenseNumber] = useState('')
   const [yearsOfExperience, setYearsOfExperience] = useState('')
 
-  const { signUp } = useAuth()
-
   const genderOptions = [
     { value: 'male', label: 'Male' },
     { value: 'female', label: 'Female' },
@@ -51,52 +55,84 @@ const SignUpScreen: React.FC = () => {
   const validateForm = () => {
     // Basic validation
     if (!email || !password || !confirmPassword || !name) {
-      Alert.alert('Error', 'Please fill in all required fields (Name, Email, Password)')
+      showToast.validationError('Please fill in all required fields (Name, Email, Password)')
       return false
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address')
+      showToast.validationError('Please enter a valid email address')
       return false
     }
 
     // Password validation
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match')
+      showToast.validationError('Passwords do not match')
       return false
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long')
+      showToast.validationError('Password must be at least 6 characters long')
       return false
     }
 
     // Role-specific validation
     if (role === 'patient') {
       if (!age || isNaN(parseInt(age)) || parseInt(age) < 1 || parseInt(age) > 150) {
-        Alert.alert('Error', 'Please enter a valid age (1-150)')
+        showToast.validationError('Please enter a valid age (1-150)')
         return false
       }
     }
 
     if (role === 'field_doctor') {
       if (!specialization.trim()) {
-        Alert.alert('Error', 'Specialization is required for doctors')
+        showToast.validationError('Specialization is required for doctors')
         return false
       }
       if (!licenseNumber.trim()) {
-        Alert.alert('Error', 'License number is required for doctors')
+        showToast.validationError('License number is required for doctors')
         return false
       }
       if (yearsOfExperience && (isNaN(parseInt(yearsOfExperience)) || parseInt(yearsOfExperience) < 0)) {
-        Alert.alert('Error', 'Please enter a valid number for years of experience')
+        showToast.validationError('Please enter a valid number for years of experience')
         return false
       }
     }
 
     return true
+  }
+
+  const createUserWithEdgeFunction = async (email: string, password: string, userData: any) => {
+    try {
+      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          userData
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        return { error: result.error || { message: 'Failed to create user' } }
+      }
+
+      return { data: result, error: null }
+    } catch (error) {
+      console.error('Edge function call error:', error)
+      return { 
+        error: { 
+          message: error instanceof Error ? error.message : 'Network error occurred' 
+        } 
+      }
+    }
   }
 
   const handleSignUp = async () => {
@@ -131,33 +167,50 @@ const SignUpScreen: React.FC = () => {
 
       console.log('Signup attempt:', { email: email.trim(), role, userData })
 
-      const { error } = await signUp(email.trim().toLowerCase(), password, userData)
+      // Call the edge function instead of signUp
+      const { error, data } = await createUserWithEdgeFunction(
+        email.trim().toLowerCase(), 
+        password, 
+        userData
+      )
 
       if (error) {
         console.error('Signup error:', error)
-        let errorMessage = 'Account creation failed'
-        if (error.message?.includes('email')) {
-          errorMessage = 'Email is already registered or invalid'
+        
+        // Handle different types of errors with appropriate toasts
+        if (error.message?.includes('User already registered') || error.message?.includes('email')) {
+          showToast.authError('Email is already registered or invalid')
         } else if (error.message?.includes('password')) {
-          errorMessage = 'Password requirements not met'
+          showToast.validationError('Password requirements not met')
         } else if (error.message?.includes('duplicate')) {
-          errorMessage = 'An account with this information already exists'
-        } else if (error.message) {
-          errorMessage = error.message
+          showToast.error('An account with this information already exists')
+        } else if (error.message?.includes('network') || error.message?.includes('connection') || error.message?.includes('fetch')) {
+          showToast.networkError()
+        } else {
+          showToast.error(error.message || 'Account creation failed')
         }
-        Alert.alert('Sign Up Failed', errorMessage)
       } else {
-        Alert.alert(
-          'Success',
-          'Account created successfully! Please check your email for verification, then sign in.',
-          [
-            { text: 'OK', onPress: () => router.push('/auth/login') }
-          ]
-        )
+        console.log('User created successfully:', data)
+        
+        // ⭐ Success flow - no need to sign out since user was never logged in
+        if (launchedByDoctor) {
+          console.log('Patient account created by doctor')
+          showToast.success(
+            'Patient account created successfully. They can now sign in from the patient app.',
+            'Account Created',
+            () => router.replace(returnTo || '/doctor')
+          )
+        } else {
+          showToast.success(
+            'Account created successfully! You can now sign in with your credentials.',
+            'Welcome!',
+            () => router.push('/auth/login')
+          )
+        }
       }
     } catch (error) {
       console.error('Unexpected signup error:', error)
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.')
+      showToast.networkError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -175,9 +228,16 @@ const SignUpScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        {/* ⭐ changed: smarter back behavior when launched by doctor */}
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.push('/auth/role-selection')}
+          onPress={() => {
+            if (launchedByDoctor && returnTo) {
+              router.replace(returnTo)
+            } else {
+              router.push('/auth/role-selection')
+            }
+          }}
         >
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
@@ -366,7 +426,10 @@ const SignUpScreen: React.FC = () => {
         >
           {loading ? 'Creating Account...' : 'Continue'}
         </Button>
+        {
 
+          !launchedByDoctor && (
+        
         <View style={styles.footer}>
           <Text style={styles.footerText}>
             Already have an account?{' '}
@@ -378,100 +441,31 @@ const SignUpScreen: React.FC = () => {
             </Text>
           </Text>
         </View>
+)}
       </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F8F9FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#333333',
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#FAFAFA',
-    fontSize: 16,
-  },
-  multilineInput: {
-    paddingTop: 12,
-  },
-  inputContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  inputOutline: {
-    borderColor: '#E8E8E8',
-    borderWidth: 1,
-    borderRadius: 8,
-  },
-  segmentedButtons: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-  },
-  continueButton: {
-    borderRadius: 12,
-    marginTop: 20,
-    marginBottom: 24,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  buttonContent: {
-    paddingVertical: 12,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  footerText: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  linkText: {
-    color: '#4285F4',
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: '#FFFFFF' },
+  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  title: { fontSize: 24, fontWeight: '600', color: '#333333', flex: 1 },
+  content: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  inputContainer: { marginBottom: 20 },
+  inputLabel: { fontSize: 16, fontWeight: '500', color: '#333333', marginBottom: 8 },
+  input: { backgroundColor: '#FAFAFA', fontSize: 16 },
+  multilineInput: { paddingTop: 12 },
+  inputContent: { paddingHorizontal: 16, paddingVertical: 12 },
+  inputOutline: { borderColor: '#E8E8E8', borderWidth: 1, borderRadius: 8 },
+  segmentedButtons: { backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E8E8E8' },
+  continueButton: { borderRadius: 12, marginTop: 20, marginBottom: 24, elevation: 0, shadowOpacity: 0 },
+  buttonContent: { paddingVertical: 12 },
+  footer: { alignItems: 'center', paddingVertical: 20 },
+  footerText: { fontSize: 16, color: '#666666', textAlign: 'center' },
+  linkText: { color: '#4285F4', fontWeight: '500' },
 })
 
 export default SignUpScreen
