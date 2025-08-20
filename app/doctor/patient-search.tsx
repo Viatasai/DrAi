@@ -77,14 +77,24 @@ const PatientSearchScreen: React.FC = () => {
     router.push(`/doctor/visit-form?patient=${patientParam}`)
   }
 
-  const handleViewTrends = (patient: Patient) => {
-    const patientParam = encodeURIComponent(JSON.stringify(patient))
-    router.push(`/doctor/patient-trends?patient=${patientParam}`)
-  }
+  // NEW: direct navigations to patient screens
+ const goTrends = (patient: Patient) => {
+  const p = encodeURIComponent(JSON.stringify(patient))
+  router.push(`/doctor/patient-details?patient=${p}&view=trends`)
+}
+const goHistory = (patient: Patient) => {
+  const p = encodeURIComponent(JSON.stringify(patient))
+  router.push(`/doctor/patient-details?patient=${p}&view=history`)
+}
+const goProfile = (patient: Patient) => {
+  const p = encodeURIComponent(JSON.stringify(patient))
+  router.push(`/doctor/patient-details?patient=${p}&view=profile`)
+}
 
-  // ✅ Reuse the same signup flow we added on the dashboard
+
   const handleCreatePatient = () => {
-    router.push('/auth/signup?role=patient&as=doctor&return=/doctor')
+    // Reuse auth/signup screen for creating a patient on behalf of doctor
+    router.push('/auth/signup?role=patient&as=doctor&return=/doctor/patient-search')
   }
 
   const getGenderIcon = (gender: string) => {
@@ -245,16 +255,41 @@ const PatientSearchScreen: React.FC = () => {
                   >
                     Start Diagnosis
                   </Button>
-                  
+                </View>
+
+                {/* NEW: Secondary actions laid out to keep labels visible */}
+                <View style={styles.secondaryActions}>
                   <Button
                     mode="outlined"
-                    onPress={() => handleViewTrends(patient)}
-                    style={styles.trendsButton}
-                    contentStyle={styles.buttonContent}
+                    onPress={() => goTrends(patient)}
+                    style={[styles.secondaryButton, styles.trendsButton]}
+                    contentStyle={styles.secondaryButtonContent}
                     textColor="#4285F4"
                     icon={() => <MaterialIcons name="trending-up" size={18} color="#4285F4" />}
                   >
-                    View Trends
+                    Trends
+                  </Button>
+
+                  <Button
+                    mode="outlined"
+                    onPress={() => goHistory(patient)}
+                    style={[styles.secondaryButton, styles.historyButton]}
+                    contentStyle={styles.secondaryButtonContent}
+                    textColor="#4285F4"
+                    icon={() => <MaterialIcons name="history" size={18} color="#4285F4" />}
+                  >
+                    History
+                  </Button>
+
+                  <Button
+                    mode="outlined"
+                    onPress={() => goProfile(patient)}
+                    style={[styles.secondaryButton, styles.profileButton]}
+                    contentStyle={styles.secondaryButtonContent}
+                    textColor="#4285F4"
+                    icon={() => <MaterialIcons name="badge" size={18} color="#4285F4" />}
+                  >
+                    Profile
                   </Button>
                 </View>
               </View>
@@ -301,18 +336,15 @@ const PatientSearchScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Sticky Create Patient Button (FAB) */}
+      {/* Sticky Create Patient Button */}
       <FAB
         style={styles.fab}
-        onPress={handleCreatePatient}           
+        onPress={handleCreatePatient} // fixed: call the function
         customSize={56}
         color="#FFFFFF"
         icon={() => (
-          <Text style={{ fontSize: 28, marginLeft: 5, marginTop: -5, fontWeight: 'bold', color: '#FFFFFF' }}>
-            +
-          </Text>
+          <Text style={{ fontSize: 28, marginLeft: 5, marginTop: -5, fontWeight: 'bold', color: '#FFFFFF' }}>+</Text>
         )}
-        accessibilityLabel="Create new patient"
       />
     </SafeAreaView>
   )
@@ -364,7 +396,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    paddingBottom: 100,
+    paddingBottom: 100, // Space for FAB
   },
   loadingContainer: {
     flex: 1,
@@ -513,16 +545,29 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 12,
   },
   diagnosisButton: {
     flex: 1,
     borderRadius: 8,
   },
-  trendsButton: {
+  // NEW secondary action row: 3 buttons with readable labels
+  secondaryActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryButton: {
     flex: 1,
     borderRadius: 8,
     borderColor: '#4285F4',
   },
+  secondaryButtonContent: {
+    paddingVertical: 8,
+  },
+  trendsButton: {},
+  historyButton: {},
+  profileButton: {},
+
   buttonContent: {
     paddingVertical: 8,
   },
