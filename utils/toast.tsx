@@ -28,7 +28,7 @@ export const toastConfig: ToastConfig = {
         <Text style={{
           fontSize: 16,
           fontWeight: '600',
-          color: '#FFFFFF',
+          color: 'black',
         }}>
           {props.text1}
         </Text>
@@ -69,7 +69,7 @@ export const toastConfig: ToastConfig = {
         <Text style={{
           fontSize: 16,
           fontWeight: '600',
-          color: '#FFFFFF',
+          color: 'black',
         }}>
           {props.text1}
         </Text>
@@ -110,7 +110,7 @@ export const toastConfig: ToastConfig = {
         <Text style={{
           fontSize: 16,
           fontWeight: '600',
-          color: '#FFFFFF',
+          color: 'black',
         }}>
           {props.text1}
         </Text>
@@ -151,14 +151,14 @@ export const toastConfig: ToastConfig = {
         <Text style={{
           fontSize: 16,
           fontWeight: '600',
-          color: '#FFFFFF',
+          color: 'black',
         }}>
           {props.text1}
         </Text>
         {props.text2 && (
           <Text style={{
             fontSize: 14,
-            color: '#FFFFFF',
+            color: 'black',
             opacity: 0.9,
             marginTop: 2,
           }}>

@@ -59,24 +59,8 @@ const DoctorProfileScreen: React.FC = () => {
   }
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: () => {
-            signOut()
-            router.replace('/auth')
-          },
-        },
-      ]
-    )
+    await signOut()
+    router.replace('/auth')
   }
 
   if (!doctor) {

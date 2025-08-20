@@ -100,6 +100,12 @@ export default function DoctorLayout() {
           href: null, // Hide from tab bar
         }}
       />
+       <Tabs.Screen
+        name="patient-details"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   )
 }
