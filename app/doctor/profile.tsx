@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase, FieldDoctor } from '../../lib/supabase'
 import { router } from 'expo-router'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '~/utils/toast'
 
 const DoctorProfileScreen: React.FC = () => {
   const { userProfile, signOut, refreshProfile } = useAuth()
@@ -35,15 +36,15 @@ const DoctorProfileScreen: React.FC = () => {
         .eq('id', doctor.id)
 
       if (error) {
-        Alert.alert('Error', 'Failed to update profile')
+        showToast.error('Error', 'Failed to update profile')
         console.error('Error updating profile:', error)
       } else {
-        Alert.alert('Success', 'Profile updated successfully')
+        showToast.success('Success', 'Profile updated successfully')
         setEditing(false)
         await refreshProfile()
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       console.error('Error updating profile:', error)
     } finally {
       setLoading(false)

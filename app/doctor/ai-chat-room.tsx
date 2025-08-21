@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, FieldDoctor, ChatMessage } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '~/utils/toast'
 
 interface VitalData {
   weight?: number
@@ -117,7 +118,7 @@ const DoctorAIChatRoomScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error initializing doctor chat:', error)
-      Alert.alert('Error', 'Failed to initialize AI chat room')
+      showToast.error('Failed to initialize AI chat room')
     } finally {
       setInitialLoading(false)
     }
@@ -433,7 +434,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
       }
     } catch (error) {
       console.error('Error sending doctor message:', error)
-      Alert.alert('Error', 'Failed to send message. Please try again.')
+      showToast.error(  'Failed to send message. Please try again.')
 
       // Remove the temporary user message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')))
@@ -451,7 +452,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
     const newSessionId = generateSessionId(vitalData?.patient_id)
     setCurrentSessionId(newSessionId)
     setMessages([])
-    Alert.alert('New Session', 'Started a new diagnostic consultation session!')
+    showToast.success('New Session', 'Started a new diagnostic consultation session!')
     console.log('New doctor session started:', newSessionId)
   }
 

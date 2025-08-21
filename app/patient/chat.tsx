@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, ChatMessage, Patient } from '../../lib/supabase'
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { showToast } from '~/utils/toast'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.8
@@ -245,7 +246,7 @@ const PatientChatScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error sending message:', error)
-      Alert.alert('Error', 'Failed to send message. Please try again.')
+      showToast.error('Error', 'Failed to send message. Please try again.')
 
       // Remove the temporary user message on error
       setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')))
@@ -254,44 +255,38 @@ const PatientChatScreen: React.FC = () => {
     }
   }
 
-  const clearChat = () => {
-    Alert.alert(
+  const clearChat = async() => {
+    showToast.warning(
       'Clear Chat History',
-      'Are you sure you want to clear all chat messages? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('chat_messages')
-                .delete()
-                .eq('patient_id', patient?.id)
+      'Are you sure you want to clear all chat messages? This action cannot be undone.')
+     
+       
+        try {
+          const { error } = await supabase
+            .from('chat_messages')
+            .delete()
+            .eq('patient_id', patient?.id)
 
-              if (error) {
-                console.error('Error clearing chat:', error)
-                Alert.alert('Error', 'Failed to clear chat history')
-              } else {
-                setMessages([])
-                setSessions([])
-                startNewSession()
-              }
-            } catch (error) {
-              console.error('Error clearing chat:', error)
-              Alert.alert('Error', 'Failed to clear chat history')
-            }
-          },
-        },
-      ]
-    )
-  }
+          if (error) {
+            console.error('Error clearing chat:', error)
+            showToast.error('Error', 'Failed to clear chat history')
+          } else {
+            setMessages([])
+            setSessions([])
+            startNewSession()
+          }
+        } catch (error) {
+          console.error('Error clearing chat:', error)
+          showToast.error('Error', 'Failed to clear chat history')
+        }
+      }
+    
+  
 
   const handleNewSession = () => {
     startNewSession()
     setDrawerVisible(false)
-    Alert.alert('New Session', 'Started a new conversation session!')
+    showToast.error('New Session', 'Started a new conversation session!')
   }
 
   const switchToSession = (sessionId: string) => {

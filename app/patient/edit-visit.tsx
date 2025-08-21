@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Visit } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '~/utils/toast'
 
 const EditVisitScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -38,7 +39,7 @@ const EditVisitScreen: React.FC = () => {
       try {
         const visitData = JSON.parse(decodeURIComponent(params.visit))
         setVisit(visitData)
-        
+
         // Populate form fields
         setWeight(visitData.weight?.toString() || '')
         setHeight(visitData.height?.toString() || '')
@@ -49,7 +50,7 @@ const EditVisitScreen: React.FC = () => {
         setBloodSugar(visitData.blood_sugar?.toString() || '')
         setOxygenSaturation(visitData.oxygen_saturation?.toString() || '')
         setRespiratoryRate(visitData.respiratory_rate?.toString() || '')
-        
+
         setSymptoms(visitData.symptoms || '')
         setDiagnosis(visitData.diagnosis || '')
         setTreatmentNotes(visitData.treatment_notes || '')
@@ -57,7 +58,7 @@ const EditVisitScreen: React.FC = () => {
         setFollowUpInstructions(visitData.follow_up_instructions || '')
       } catch (error) {
         console.error('Error parsing visit data:', error)
-        Alert.alert('Error', 'Invalid visit data')
+        showToast.error('Error', 'Invalid visit data')
         router.back()
       }
     }
@@ -65,58 +66,58 @@ const EditVisitScreen: React.FC = () => {
 
   const validateForm = () => {
     // Check if at least one field has content
-    const hasContent = weight || height || systolicBp || diastolicBp || heartRate || 
-                      temperature || bloodSugar || oxygenSaturation || respiratoryRate ||
-                      symptoms.trim() || diagnosis.trim() || treatmentNotes.trim()
-    
+    const hasContent = weight || height || systolicBp || diastolicBp || heartRate ||
+      temperature || bloodSugar || oxygenSaturation || respiratoryRate ||
+      symptoms.trim() || diagnosis.trim() || treatmentNotes.trim()
+
     if (!hasContent) {
-      Alert.alert('Validation Error', 'Please enter at least some information')
+      showToast.error('Validation Error', 'Please enter at least some information')
       return false
     }
 
     // Validate vital signs ranges
     if (weight && (parseFloat(weight) < 1 || parseFloat(weight) > 500)) {
-      Alert.alert('Validation Error', 'Please enter a valid weight (1-500 kg)')
+      showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
       return false
     }
 
     if (height && (parseFloat(height) < 30 || parseFloat(height) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid height (30-300 cm)')
+      showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
       return false
     }
 
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
       return false
     }
 
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      Alert.alert('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
       return false
     }
 
     if (heartRate && (parseInt(heartRate) < 30 || parseInt(heartRate) > 250)) {
-      Alert.alert('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
+      showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
       return false
     }
 
     if (temperature && (parseFloat(temperature) < 30 || parseFloat(temperature) > 45)) {
-      Alert.alert('Validation Error', 'Please enter a valid temperature (30-45°C)')
+      showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
       return false
     }
 
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      Alert.alert('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
       return false
     }
 
     if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      Alert.alert('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
       return false
     }
 
     if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      Alert.alert('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
       return false
     }
 
@@ -153,18 +154,16 @@ const EditVisitScreen: React.FC = () => {
         .eq('id', visit.id)
 
       if (error) {
-        Alert.alert('Error', 'Failed to update visit record')
+        showToast.error('Error', 'Failed to update visit record')
         console.error('Error updating visit:', error)
       } else {
-        Alert.alert('Success', 'Visit record updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ])
+        showToast.success('Success', 'Visit record updated successfully')
+
+        router.back()
+
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       console.error('Error updating visit:', error)
     } finally {
       setLoading(false)
@@ -192,7 +191,7 @@ const EditVisitScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -204,7 +203,7 @@ const EditVisitScreen: React.FC = () => {
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -212,7 +211,7 @@ const EditVisitScreen: React.FC = () => {
         {/* Vital Signs Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vital Signs</Text>
-          
+
           <View style={styles.inputRow}>
             <CleanTextInput
               label="Weight (kg)"
@@ -301,7 +300,7 @@ const EditVisitScreen: React.FC = () => {
         {/* Visit Information Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Visit Information</Text>
-          
+
           <CleanTextInput
             label="Symptoms"
             value={symptoms}

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native'
 import { router } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '~/utils/toast'
 
 
 
@@ -19,7 +20,7 @@ const LoginScreen: React.FC = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields')
+      showToast.validationError('Please fill in all fields')
       return
     }
 
@@ -28,7 +29,7 @@ const LoginScreen: React.FC = () => {
       const { data, error } = await signIn(email, password)
       
       if (error) {
-        Alert.alert('Error', error.message || 'Login failed')
+        showToast.error( error.message || 'Login failed')
         return
       }
 
@@ -37,7 +38,7 @@ const LoginScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Login error:', error)
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('An unexpected error occurred')
     } finally {
       setLoading(false)
     }

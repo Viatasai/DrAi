@@ -14,6 +14,7 @@ export const toastConfig: ToastConfig = {
       backgroundColor: '#e6f4e9',
       borderRadius: 12,
       borderLeftColor: '#218838',
+      borderLeftWidth:4,
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: 16,
@@ -23,7 +24,7 @@ export const toastConfig: ToastConfig = {
       shadowRadius: 4,
       elevation: 3,
     }}>
-      <MaterialIcons name="check-circle" size={24} color="#FFFFFF" />
+      <MaterialIcons name="check-circle" size={24} color="#218838" />
       <View style={{ marginLeft: 12, flex: 1 }}>
         <Text style={{
           fontSize: 16,
@@ -57,6 +58,7 @@ export const toastConfig: ToastConfig = {
       borderRadius: 12,
       flexDirection: 'row',
       alignItems: 'center',
+      borderLeftWidth:4,
       paddingHorizontal: 16,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -64,7 +66,7 @@ export const toastConfig: ToastConfig = {
       shadowRadius: 4,
       elevation: 3,
     }}>
-      <MaterialIcons name="error" size={24} color="#FFFFFF" />
+      <MaterialIcons name="error" size={24} color="#c82333" />
       <View style={{ marginLeft: 12, flex: 1 }}>
         <Text style={{
           fontSize: 16,
@@ -97,6 +99,7 @@ export const toastConfig: ToastConfig = {
       backgroundColor: '#DFF3FF',
       borderRadius: 12,
       flexDirection: 'row',
+      borderLeftWidth:4,
       alignItems: 'center',
       paddingHorizontal: 16,
       shadowColor: '#000',
@@ -105,7 +108,7 @@ export const toastConfig: ToastConfig = {
       shadowRadius: 4,
       elevation: 3,
     }}>
-      <MaterialIcons name="info" size={24} color="#FFFFFF" />
+      <MaterialIcons name="info" size={24} color="#0447a8" />
       <View style={{ marginLeft: 12, flex: 1 }}>
         <Text style={{
           fontSize: 16,
@@ -138,6 +141,7 @@ export const toastConfig: ToastConfig = {
       backgroundColor: '#fff7e6',
       borderRadius: 12,
       flexDirection: 'row',
+      borderLeftWidth:4,
       alignItems: 'center',
       paddingHorizontal: 16,
       shadowColor: '#000',
@@ -146,7 +150,7 @@ export const toastConfig: ToastConfig = {
       shadowRadius: 4,
       elevation: 3,
     }}>
-      <MaterialIcons name="warning" size={24} color="#FFFFFF" />
+      <MaterialIcons name="warning" size={24} color="#e0a800" />
       <View style={{ marginLeft: 12, flex: 1 }}>
         <Text style={{
           fontSize: 16,

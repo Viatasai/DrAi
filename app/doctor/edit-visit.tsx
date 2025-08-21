@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Visit, FieldDoctor } from '../../lib/supabase'
+import { showToast } from '~/utils/toast'
 
 
 const DoctorEditVisitScreen: React.FC = () => {
@@ -55,7 +56,7 @@ const DoctorEditVisitScreen: React.FC = () => {
         .single()
 
       if (error) {
-        Alert.alert('Error', 'Failed to load visit details')
+        showToast.error('Error', 'Failed to load visit details')
         console.error('Error loading visit:', error)
         router.back()
       } else {
@@ -78,7 +79,7 @@ const DoctorEditVisitScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading visit:', error)
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       router.back()
     } finally {
       setLoading(false)
@@ -87,53 +88,53 @@ const DoctorEditVisitScreen: React.FC = () => {
 
   const validateForm = () => {
     if (!symptoms.trim()) {
-      Alert.alert('Validation Error', 'Please enter patient symptoms')
+      showToast.error('Validation Error', 'Please enter patient symptoms')
       return false
     }
 
     // Validate vital signs ranges
     if (weight && (parseFloat(weight) < 1 || parseFloat(weight) > 500)) {
-      Alert.alert('Validation Error', 'Please enter a valid weight (1-500 kg)')
+      showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
       return false
     }
 
     if (height && (parseFloat(height) < 30 || parseFloat(height) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid height (30-300 cm)')
+      showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
       return false
     }
 
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
       return false
     }
 
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      Alert.alert('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
       return false
     }
 
     if (heartRate && (parseInt(heartRate) < 30 || parseInt(heartRate) > 250)) {
-      Alert.alert('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
+      showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
       return false
     }
 
     if (temperature && (parseFloat(temperature) < 30 || parseFloat(temperature) > 45)) {
-      Alert.alert('Validation Error', 'Please enter a valid temperature (30-45°C)')
+      showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
       return false
     }
 
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      Alert.alert('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
       return false
     }
 
     if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      Alert.alert('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
       return false
     }
 
     if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      Alert.alert('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
       return false
     }
 
@@ -170,18 +171,15 @@ const DoctorEditVisitScreen: React.FC = () => {
         .eq('doctor_id', doctor?.id) // Security check
 
       if (error) {
-        Alert.alert('Error', 'Failed to update visit')
+        showToast.error('Error', 'Failed to update visit')
         console.error('Error updating visit:', error)
       } else {
-        Alert.alert('Success', 'Visit updated successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ])
+        showToast.success('Success', 'Visit updated successfully')
+        router.back()
+          
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       console.error('Error updating visit:', error)
     } finally {
       setSaving(false)

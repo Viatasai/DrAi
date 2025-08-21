@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Patient } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import { showToast } from '~/utils/toast'
 
 const AddVitalsScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -36,53 +37,53 @@ const AddVitalsScreen: React.FC = () => {
     const hasSymptoms = symptoms.trim()
     
     if (!hasVitals && !hasSymptoms) {
-      Alert.alert('Validation Error', 'Please enter at least one vital sign or symptom')
+      showToast.error('Validation Error', 'Please enter at least one vital sign or symptom')
       return false
     }
 
     // Validate vital signs ranges
     if (weight && (parseFloat(weight) < 1 || parseFloat(weight) > 500)) {
-      Alert.alert('Validation Error', 'Please enter a valid weight (1-500 kg)')
+      showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
       return false
     }
 
     if (height && (parseFloat(height) < 30 || parseFloat(height) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid height (30-300 cm)')
+      showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
       return false
     }
 
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      Alert.alert('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
       return false
     }
 
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      Alert.alert('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
       return false
     }
 
     if (heartRate && (parseInt(heartRate) < 30 || parseInt(heartRate) > 250)) {
-      Alert.alert('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
+      showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
       return false
     }
 
     if (temperature && (parseFloat(temperature) < 30 || parseFloat(temperature) > 45)) {
-      Alert.alert('Validation Error', 'Please enter a valid temperature (30-45°C)')
+      showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
       return false
     }
 
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      Alert.alert('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
       return false
     }
 
     if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      Alert.alert('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
       return false
     }
 
     if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      Alert.alert('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
       return false
     }
 
@@ -118,18 +119,16 @@ const AddVitalsScreen: React.FC = () => {
         .insert(visitData)
 
       if (error) {
-        Alert.alert('Error', 'Failed to save vitals entry')
+        showToast.error('Error', 'Failed to save vitals entry')
         console.error('Error saving vitals:', error)
       } else {
-        Alert.alert('Success', 'Vitals entry saved successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ])
+        showToast.error('Success', 'Vitals entry saved successfully')
+        
+       router.back()
+        
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       console.error('Error saving vitals:', error)
     } finally {
       setLoading(false)
