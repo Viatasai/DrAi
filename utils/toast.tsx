@@ -35,7 +35,7 @@ export const toastConfig: ToastConfig = {
         {props.text2 && (
           <Text style={{
             fontSize: 14,
-            color: '#FFFFFF',
+            color: 'black',
             opacity: 0.9,
             marginTop: 2,
           }}>
@@ -76,7 +76,7 @@ export const toastConfig: ToastConfig = {
         {props.text2 && (
           <Text style={{
             fontSize: 14,
-            color: '#FFFFFF',
+            color: 'black',
             opacity: 0.9,
             marginTop: 2,
           }}>
@@ -117,7 +117,7 @@ export const toastConfig: ToastConfig = {
         {props.text2 && (
           <Text style={{
             fontSize: 14,
-            color: '#FFFFFF',
+            color: 'black',
             opacity: 0.9,
             marginTop: 2,
           }}>
