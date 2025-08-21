@@ -548,7 +548,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!authUser) {
       setUserRole(null);
       setUserProfile(null);
-      router.replace('/auth');
+      router.replace('/');
       setLoading(false);
       return;
     }
@@ -560,7 +560,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!role) {
         setUserRole(null);
         setUserProfile(null);
-        router.replace('/auth');
+        router.replace('/');
         setLoading(false);
         return;
       }
