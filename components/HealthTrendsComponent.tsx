@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native'
+import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity } from 'react-native'
 import { Text, ActivityIndicator, SegmentedButtons } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { LineChart } from 'react-native-chart-kit'
@@ -232,13 +232,14 @@ const HealthTrendsComponent: React.FC<HealthTrendsProps> = ({
       contentContainerStyle={styles.vitalSelectorContent}
     >
       {vitalOptions.map((vital) => (
-        <View
+        <TouchableOpacity
           key={vital.value}
           style={[
             styles.vitalOption,
             selectedVital === vital.value && styles.selectedVitalOption
           ]}
-          onTouchEnd={() => setSelectedVital(vital.value)}
+          activeOpacity={0.8}
+          onPress={() => setSelectedVital(vital.value)}
         >
           <MaterialIcons 
             name={vital.icon as any} 
@@ -251,7 +252,7 @@ const HealthTrendsComponent: React.FC<HealthTrendsProps> = ({
           ]}>
             {vital.label}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   )
