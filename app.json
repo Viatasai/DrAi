@@ -4,7 +4,7 @@
     "slug": "HealthcareApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "healthcareapp",
@@ -15,18 +15,18 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.niting.HealthcareApp"
+      "bundleIdentifier": "com.nikhil.HealthcareApp"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.niting.HealthcareApp"
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/logo.png",
       "bundler": "metro"
     },
     "plugins": [
