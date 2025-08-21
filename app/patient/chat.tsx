@@ -490,10 +490,10 @@ const PatientChatScreen: React.FC = () => {
 
             <Divider />
 
-            <TouchableOpacity style={styles.newSessionButton} onPress={handleNewSession}>
+            {/* <TouchableOpacity style={styles.newSessionButton} onPress={handleNewSession}>
               <MaterialIcons name="add" size={20} color="#2196F3" />
               <Text style={styles.newSessionText}>Start New Session</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             <Divider />
 
