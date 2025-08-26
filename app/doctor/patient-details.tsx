@@ -6,7 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import PatientDetailsWrapper from '~/components/PatientData'
 
 export default function patientDetails() {
-
   const params = useLocalSearchParams<{ patient?: string; view?: string }>()
   const patient: Patient | null = useMemo(() => {
     try {
@@ -15,11 +14,8 @@ export default function patientDetails() {
       return null
     }
   }, [params.patient])
-  return (
- 
-    <PatientDetailsWrapper patient_id={patient?.id!} view={params.view!}></PatientDetailsWrapper>
 
-  )
+  return <PatientDetailsWrapper patient_id={patient?.id!} view={params.view!} />
 }
 
 // import React, { useEffect, useMemo, useState } from 'react'

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native'
 import { Text, Button, ActivityIndicator } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
@@ -26,10 +32,12 @@ const PatientHomeScreen: React.FC = () => {
       // Get recent visits
       const { data: visits, error } = await supabase
         .from('visits')
-        .select(`
+        .select(
+          `
           *,
           field_doctors (name, specialization)
-        `)
+        `,
+        )
         .eq('patient_id', patient.id)
         .order('visit_date', { ascending: false })
         .limit(5)
@@ -61,22 +69,22 @@ const PatientHomeScreen: React.FC = () => {
       vitals.push({
         label: `${visit.systolic_bp}/${visit.diastolic_bp}`,
         unit: 'mmHg',
-        normal: !isHigh
+        normal: !isHigh,
       })
     }
     if (visit.heart_rate) {
       const isNormal = visit.heart_rate >= 60 && visit.heart_rate <= 100
-      vitals.push({ 
-        label: `${visit.heart_rate}`, 
+      vitals.push({
+        label: `${visit.heart_rate}`,
         unit: 'bpm',
-        normal: isNormal 
+        normal: isNormal,
       })
     }
     if (visit.temperature) {
       const isNormal = visit.temperature <= 37.5
       vitals.push({
         label: `${visit.temperature}°C`,
-        normal: isNormal
+        normal: isNormal,
       })
     }
 
@@ -106,11 +114,7 @@ const PatientHomeScreen: React.FC = () => {
   }
 
   const renderVisitCard = (visit: Visit) => (
-    <TouchableOpacity 
-      key={visit.id} 
-      style={styles.visitCard}
-      onPress={()=>{}}
-    >
+    <TouchableOpacity key={visit.id} style={styles.visitCard} onPress={() => {}}>
       {/* Visit Header */}
       <View style={styles.visitHeader}>
         <View style={styles.visitDateContainer}>
@@ -151,24 +155,23 @@ const PatientHomeScreen: React.FC = () => {
         <View style={styles.vitalsSection}>
           <Text style={styles.sectionTitle}>Vitals</Text>
           <View style={styles.vitalsGrid}>
-            {getVitalChips(visit).slice(0, 4).map((vital, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.vitalChip,
-                  !vital.normal && styles.alertChip
-                ]}
-              >
-                <Text style={[styles.vitalValue, !vital.normal && styles.alertText]}>
-                  {vital.label}
-                </Text>
-                {vital.unit && (
-                  <Text style={[styles.vitalUnit, !vital.normal && styles.alertText]}>
-                    {vital.unit}
+            {getVitalChips(visit)
+              .slice(0, 4)
+              .map((vital, idx) => (
+                <View
+                  key={idx}
+                  style={[styles.vitalChip, !vital.normal && styles.alertChip]}
+                >
+                  <Text style={[styles.vitalValue, !vital.normal && styles.alertText]}>
+                    {vital.label}
                   </Text>
-                )}
-              </View>
-            ))}
+                  {vital.unit && (
+                    <Text style={[styles.vitalUnit, !vital.normal && styles.alertText]}>
+                      {vital.unit}
+                    </Text>
+                  )}
+                </View>
+              ))}
           </View>
         </View>
       )}
@@ -201,9 +204,7 @@ const PatientHomeScreen: React.FC = () => {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Welcome Section */}
@@ -213,7 +214,7 @@ const PatientHomeScreen: React.FC = () => {
               <Text style={styles.greetingText}>{getGreeting()}</Text>
               <Text style={styles.nameText}>{patient?.name}</Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.profileButton}
               onPress={() => router.push('/patient/profile')}
             >
@@ -225,7 +226,10 @@ const PatientHomeScreen: React.FC = () => {
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push('/patient/history')}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push('/patient/history')}
+          >
             <View style={styles.statIcon}>
               <MaterialIcons name="history" size={24} color="#4285F4" />
             </View>
@@ -233,7 +237,10 @@ const PatientHomeScreen: React.FC = () => {
             <Text style={styles.statLabel}>Recent Visits</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push('/patient/AddVitals')}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push('/patient/AddVitals')}
+          >
             <View style={styles.statIcon}>
               <MaterialIcons name="notes" size={24} color="#4CAF50" />
             </View>
@@ -241,7 +248,10 @@ const PatientHomeScreen: React.FC = () => {
             <Text style={styles.statLabel}>Vitals Entry</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push('/patient/profile')}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => router.push('/patient/profile')}
+          >
             <View style={styles.statIcon}>
               <MaterialIcons name="person" size={24} color="#FF9800" />
             </View>
@@ -254,9 +264,9 @@ const PatientHomeScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderTitle}>Recent Visits</Text>
-            <Button 
-              onPress={() => router.push('/patient/history')} 
-              mode="text" 
+            <Button
+              onPress={() => router.push('/patient/history')}
+              mode="text"
               compact
               textColor="#4285F4"
             >
@@ -299,9 +309,7 @@ const PatientHomeScreen: React.FC = () => {
                 <MaterialIcons name="medication" size={20} color="#4CAF50" />
                 <Text style={styles.medicationTitle}>Active Medications</Text>
               </View>
-              <Text style={styles.medicationText}>
-                {patient.current_medications}
-              </Text>
+              <Text style={styles.medicationText}>{patient.current_medications}</Text>
             </View>
           </View>
         )}

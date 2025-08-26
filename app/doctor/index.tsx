@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Dimensions } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+  Modal,
+  Dimensions,
+} from 'react-native'
 import { Text, ActivityIndicator } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -16,7 +24,11 @@ interface VisitDetailsModalProps {
   onClose: () => void
 }
 
-const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, onClose }) => {
+const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({
+  visible,
+  visit,
+  onClose,
+}) => {
   if (!visit) return null
 
   const formatDate = (dateString: string) => {
@@ -30,26 +42,30 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
     })
   }
 
-  const getVitalStatus = (value: number | null, normalRange: { min?: number; max?: number }, unit: string) => {
+  const getVitalStatus = (
+    value: number | null,
+    normalRange: { min?: number; max?: number },
+    unit: string,
+  ) => {
     if (!value) return { status: 'Not recorded', color: '#999999', bgColor: '#F5F5F5' }
-    
+
     const isHigh = normalRange.max && value > normalRange.max
     const isLow = normalRange.min && value < normalRange.min
-    
+
     if (isHigh) return { status: 'High', color: '#F44336', bgColor: '#FFEBEE' }
     if (isLow) return { status: 'Low', color: '#FF9800', bgColor: '#FFF3E0' }
     return { status: 'Normal', color: '#4CAF50', bgColor: '#E8F5E8' }
   }
 
   const renderVitalCard = (
-    title: string, 
-    value: number | null, 
-    unit: string, 
-    icon: string, 
-    normalRange: { min?: number; max?: number }
+    title: string,
+    value: number | null,
+    unit: string,
+    icon: string,
+    normalRange: { min?: number; max?: number },
   ) => {
     const vitalStatus = getVitalStatus(value, normalRange, unit)
-    
+
     return (
       <View style={styles.vitalCard}>
         <View style={styles.vitalHeader}>
@@ -70,7 +86,7 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
 
   const renderInfoSection = (title: string, content: string | null, icon: string) => {
     if (!content) return null
-    
+
     return (
       <View style={styles.infoSection}>
         <View style={styles.infoHeader}>
@@ -131,61 +147,49 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
             <View style={styles.vitalsGrid}>
               {renderVitalCard(
                 'Blood Pressure',
-                visit.systolic_bp && visit.diastolic_bp 
-                  ? `${visit.systolic_bp}/${visit.diastolic_bp}` as any
+                visit.systolic_bp && visit.diastolic_bp
+                  ? (`${visit.systolic_bp}/${visit.diastolic_bp}` as any)
                   : null,
                 'mmHg',
                 'monitor-heart',
-                { max: 140 }
+                { max: 140 },
               )}
-              {renderVitalCard(
-                'Heart Rate',
-                visit.heart_rate,
-                'bpm',
-                'favorite',
-                { min: 60, max: 100 }
-              )}
-              {renderVitalCard(
-                'Temperature',
-                visit.temperature,
-                '°C',
-                'thermostat',
-                { max: 37.5 }
-              )}
-              {renderVitalCard(
-                'Blood Sugar',
-                visit.blood_sugar,
-                'mg/dL',
-                'bloodtype',
-                { min: 70, max: 180 }
-              )}
-              {renderVitalCard(
-                'Oxygen Saturation',
-                visit.oxygen_saturation,
-                '%',
-                'air',
-                { min: 95 }
-              )}
-              {renderVitalCard(
-                'Weight',
-                visit.weight,
-                'kg',
-                'monitor-weight',
-                {}
-              )}
+              {renderVitalCard('Heart Rate', visit.heart_rate, 'bpm', 'favorite', {
+                min: 60,
+                max: 100,
+              })}
+              {renderVitalCard('Temperature', visit.temperature, '°C', 'thermostat', {
+                max: 37.5,
+              })}
+              {renderVitalCard('Blood Sugar', visit.blood_sugar, 'mg/dL', 'bloodtype', {
+                min: 70,
+                max: 180,
+              })}
+              {renderVitalCard('Oxygen Saturation', visit.oxygen_saturation, '%', 'air', {
+                min: 95,
+              })}
+              {renderVitalCard('Weight', visit.weight, 'kg', 'monitor-weight', {})}
             </View>
           </View>
 
           {/* Clinical Information */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Clinical Information</Text>
-            
+
             {renderInfoSection('Symptoms', visit.symptoms, 'sick')}
             {renderInfoSection('Diagnosis', visit.diagnosis, 'medical-information')}
             {renderInfoSection('Treatment Notes', visit.treatment_notes, 'healing')}
-            {renderInfoSection('Prescribed Medications', visit.prescribed_medications, 'medication')}
-            {renderInfoSection('Follow-up Instructions', visit.follow_up_instructions, 'assignment')}
-            
+            {renderInfoSection(
+              'Prescribed Medications',
+              visit.prescribed_medications,
+              'medication',
+            )}
+            {renderInfoSection(
+              'Follow-up Instructions',
+              visit.follow_up_instructions,
+              'assignment',
+            )}
+
             {/* Visit Type and Status */}
             <View style={styles.visitMetadata}>
               <View style={styles.metadataItem}>
@@ -196,34 +200,44 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
                   </Text>
                 </View>
               </View>
-              
+
               {visit.urgency_level && (
                 <View style={styles.metadataItem}>
                   <Text style={styles.metadataLabel}>Urgency Level</Text>
-                  <View style={[
-                    styles.metadataBadge, 
-                    visit.urgency_level === 'urgent' ? styles.urgentBadge :
-                    visit.urgency_level === 'high' ? styles.highBadge :
-                    visit.urgency_level === 'medium' ? styles.mediumBadge :
-                    styles.lowBadge
-                  ]}>
-                    <Text style={[
-                      styles.metadataValue,
-                      visit.urgency_level === 'urgent' || visit.urgency_level === 'high' 
-                        ? styles.whiteText : styles.darkText
-                    ]}>
-                      {visit.urgency_level.charAt(0).toUpperCase() + visit.urgency_level.slice(1)}
+                  <View
+                    style={[
+                      styles.metadataBadge,
+                      visit.urgency_level === 'urgent'
+                        ? styles.urgentBadge
+                        : visit.urgency_level === 'high'
+                          ? styles.highBadge
+                          : visit.urgency_level === 'medium'
+                            ? styles.mediumBadge
+                            : styles.lowBadge,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.metadataValue,
+                        visit.urgency_level === 'urgent' || visit.urgency_level === 'high'
+                          ? styles.whiteText
+                          : styles.darkText,
+                      ]}
+                    >
+                      {visit.urgency_level.charAt(0).toUpperCase() +
+                        visit.urgency_level.slice(1)}
                     </Text>
                   </View>
                 </View>
               )}
-              
+
               {visit.confidence_level && (
                 <View style={styles.metadataItem}>
                   <Text style={styles.metadataLabel}>Confidence Level</Text>
                   <View style={styles.metadataBadge}>
                     <Text style={styles.metadataValue}>
-                      {visit.confidence_level.charAt(0).toUpperCase() + visit.confidence_level.slice(1)}
+                      {visit.confidence_level.charAt(0).toUpperCase() +
+                        visit.confidence_level.slice(1)}
                     </Text>
                   </View>
                 </View>
@@ -233,11 +247,17 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={()=>{ onClose() ; router.push(`/doctor/edit-visit?visitId=${visit.id}`)}}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => {
+                onClose()
+                router.push(`/doctor/edit-visit?visitId=${visit.id}`)
+              }}
+            >
               <MaterialIcons name="edit" size={20} color="#4285F4" />
               <Text style={styles.actionButtonText}>Edit Visit</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.actionButton}>
               <MaterialIcons name="print" size={20} color="#4285F4" />
               <Text style={styles.actionButtonText}>Generate Report</Text>
@@ -250,8 +270,8 @@ const VisitDetailsModal: React.FC<VisitDetailsModalProps> = ({ visible, visit, o
 }
 
 const index: React.FC = () => {
-  console.log("🏠 DoctorHomeScreen rendered")
-  
+  console.log('🏠 DoctorHomeScreen rendered')
+
   const { userProfile, user, loading } = useAuth()
   const router = useRouter()
   const [recentVisits, setRecentVisits] = useState<Visit[]>([])
@@ -263,45 +283,47 @@ const index: React.FC = () => {
   })
   const [loading1, setLoading1] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  
+
   // Modal state
   const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null)
   const [modalVisible, setModalVisible] = useState(false)
 
-  if(loading){
+  if (loading) {
     return <Loader isOpen={loading}></Loader>
   }
 
   const doctor = userProfile as FieldDoctor
-  
-  console.log("👨‍⚕️ Doctor data:", { 
-    hasDoctor: !!doctor, 
+
+  console.log('👨‍⚕️ Doctor data:', {
+    hasDoctor: !!doctor,
     doctorName: doctor?.name,
-    hasUser: !!user 
+    hasUser: !!user,
   })
 
   useEffect(() => {
-    console.log("🔄 useEffect triggered, loading dashboard data")
+    console.log('🔄 useEffect triggered, loading dashboard data')
     loadDashboardData()
   }, [doctor?.id])
 
   const loadDashboardData = async () => {
     if (!doctor?.id) {
-      console.log("⚠️ No doctor ID, skipping data load")
+      console.log('⚠️ No doctor ID, skipping data load')
       setLoading1(false)
       return
     }
 
-    console.log("📊 Loading dashboard data for doctor:", doctor.id)
+    console.log('📊 Loading dashboard data for doctor:', doctor.id)
 
     try {
       // Get recent visits
       const { data: visits, error: visitsError } = await supabase
         .from('visits')
-        .select(`
+        .select(
+          `
           *,
           patients (name, age, gender)
-        `)
+        `,
+        )
         .eq('doctor_id', doctor.id)
         .order('visit_date', { ascending: false })
         .limit(5)
@@ -309,21 +331,27 @@ const index: React.FC = () => {
       if (visitsError) {
         console.error('❌ Error loading visits:', visitsError)
       } else {
-        console.log("✅ Recent visits loaded:", visits?.length || 0)
+        console.log('✅ Recent visits loaded:', visits?.length || 0)
         setRecentVisits(visits || [])
       }
 
       // Get today's visits
       const today = new Date()
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      const endOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 1,
+      )
 
       const { data: todayData, error: todayError } = await supabase
         .from('visits')
-        .select(`
+        .select(
+          `
           *,
           patients (name, age, gender)
-        `)
+        `,
+        )
         .eq('doctor_id', doctor.id)
         .gte('visit_date', startOfDay.toISOString())
         .lt('visit_date', endOfDay.toISOString())
@@ -353,16 +381,15 @@ const index: React.FC = () => {
         .eq('doctor_id', doctor.id)
 
       if (!weekError && !patientsError) {
-        const uniquePatientIds = new Set(uniquePatients?.map(v => v.patient_id) || [])
+        const uniquePatientIds = new Set(uniquePatients?.map((v) => v.patient_id) || [])
         const newStats = {
           totalPatients: uniquePatientIds.size,
           visitsThisWeek: weekVisits?.length || 0,
           visitsToday: todayData?.length || 0,
         }
-        console.log("📈 Stats loaded:", newStats)
+        console.log('📈 Stats loaded:', newStats)
         setStats(newStats)
       }
-
     } catch (error) {
       console.error('❌ Error loading dashboard data:', error)
     } finally {
@@ -372,7 +399,7 @@ const index: React.FC = () => {
   }
 
   const onRefresh = () => {
-    console.log("🔄 Refreshing dashboard data")
+    console.log('🔄 Refreshing dashboard data')
     setRefreshing(true)
     loadDashboardData()
   }
@@ -411,7 +438,10 @@ const index: React.FC = () => {
         <View style={styles.centerContainer}>
           <MaterialIcons name="error-outline" size={64} color="#E8E8E8" />
           <Text style={styles.errorText}>Unable to load doctor profile</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadDashboardData()}>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => loadDashboardData()}
+          >
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -442,9 +472,7 @@ const index: React.FC = () => {
       <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Quick Stats */}
@@ -481,7 +509,10 @@ const index: React.FC = () => {
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/doctor/patient-search')}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => router.push('/doctor/patient-search')}
+            >
               <View style={[styles.actionIcon, { backgroundColor: '#F0F7FF' }]}>
                 <MaterialIcons name="person-search" size={28} color="#4285F4" />
               </View>
@@ -520,8 +551,8 @@ const index: React.FC = () => {
           ) : todayVisits.length > 0 ? (
             <View style={styles.visitsContainer}>
               {todayVisits.map((visit, index) => (
-                <TouchableOpacity 
-                  key={visit.id} 
+                <TouchableOpacity
+                  key={visit.id}
                   style={styles.visitCard}
                   onPress={() => handleVisitPress(visit)}
                 >
@@ -533,9 +564,7 @@ const index: React.FC = () => {
                       <Text style={styles.patientName}>
                         {(visit as any).patients?.name || 'Unknown Patient'}
                       </Text>
-                      <Text style={styles.visitTime}>
-                        {formatDate(visit.visit_date)}
-                      </Text>
+                      <Text style={styles.visitTime}>{formatDate(visit.visit_date)}</Text>
                       {visit.symptoms && (
                         <Text style={styles.symptoms} numberOfLines={1}>
                           {visit.symptoms}
@@ -548,13 +577,15 @@ const index: React.FC = () => {
                           key={idx}
                           style={[
                             styles.statusBadge,
-                            status === 'Normal' ? styles.normalBadge : styles.alertBadge
+                            status === 'Normal' ? styles.normalBadge : styles.alertBadge,
                           ]}
                         >
-                          <Text style={[
-                            styles.statusText,
-                            status === 'Normal' ? styles.normalText : styles.alertText
-                          ]}>
+                          <Text
+                            style={[
+                              styles.statusText,
+                              status === 'Normal' ? styles.normalText : styles.alertText,
+                            ]}
+                          >
                             {status}
                           </Text>
                         </View>
@@ -584,11 +615,11 @@ const index: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-        {recentVisits.length > 0 ? (
+          {recentVisits.length > 0 ? (
             <View style={styles.visitsContainer}>
               {recentVisits.map((visit, index) => (
-                <TouchableOpacity 
-                  key={visit.id} 
+                <TouchableOpacity
+                  key={visit.id}
                   style={styles.visitCard}
                   onPress={() => handleVisitPress(visit)}
                 >
@@ -600,9 +631,7 @@ const index: React.FC = () => {
                       <Text style={styles.patientName}>
                         {(visit as any).patients?.name || 'Unknown Patient'}
                       </Text>
-                      <Text style={styles.visitTime}>
-                        {formatDate(visit.visit_date)}
-                      </Text>
+                      <Text style={styles.visitTime}>{formatDate(visit.visit_date)}</Text>
                       {visit.diagnosis && (
                         <Text style={styles.diagnosis} numberOfLines={1}>
                           {visit.diagnosis}
@@ -615,13 +644,15 @@ const index: React.FC = () => {
                           key={idx}
                           style={[
                             styles.statusBadge,
-                            status === 'Normal' ? styles.normalBadge : styles.alertBadge
+                            status === 'Normal' ? styles.normalBadge : styles.alertBadge,
                           ]}
                         >
-                          <Text style={[
-                            styles.statusText,
-                            status === 'Normal' ? styles.normalText : styles.alertText
-                          ]}>
+                          <Text
+                            style={[
+                              styles.statusText,
+                              status === 'Normal' ? styles.normalText : styles.alertText,
+                            ]}
+                          >
                             {status}
                           </Text>
                         </View>
@@ -637,7 +668,9 @@ const index: React.FC = () => {
                 <MaterialIcons name="medical-information" size={48} color="#E8E8E8" />
               </View>
               <Text style={styles.emptyTitle}>No recent visits</Text>
-              <Text style={styles.emptySubtitle}>Recent patient consultations will appear here</Text>
+              <Text style={styles.emptySubtitle}>
+                Recent patient consultations will appear here
+              </Text>
             </View>
           )}
         </View>
@@ -652,7 +685,6 @@ const index: React.FC = () => {
     </SafeAreaView>
   )
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -924,7 +956,7 @@ const styles = StyleSheet.create({
     color: '#999999',
     textAlign: 'center',
   },
-  
+
   // Modal Styles
   modalContainer: {
     flex: 1,

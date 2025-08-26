@@ -4,61 +4,61 @@ import { Platform } from 'react-native'
 
 // Supabase configuration
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'YOUR_SUPABASE_URL'
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
+const supabaseAnonKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 
 // Enhanced storage adapter for native platforms
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(key);
+      return await SecureStore.getItemAsync(key)
     } catch (error) {
-      console.error('SecureStore getItem error:', error);
-      return null;
+      console.error('SecureStore getItem error:', error)
+      return null
     }
   },
   setItem: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(key, value);
+      await SecureStore.setItemAsync(key, value)
     } catch (error) {
-      console.error('SecureStore setItem error:', error);
+      console.error('SecureStore setItem error:', error)
     }
   },
   removeItem: async (key: string) => {
     try {
-      await SecureStore.deleteItemAsync(key);
+      await SecureStore.deleteItemAsync(key)
     } catch (error) {
-      console.error('SecureStore removeItem error:', error);
+      console.error('SecureStore removeItem error:', error)
     }
   },
 }
 
 // Enhanced web storage adapter with better error handling
 const createWebStorageAdapter = () => {
-  // Check if we're in a browser environment
-  const isWebBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-  
+  const isWebBrowser =
+    typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
   if (isWebBrowser) {
     return {
       getItem: async (key: string) => {
         try {
-          return window.localStorage.getItem(key);
+          return window.localStorage.getItem(key)
         } catch (error) {
-          console.error('localStorage getItem error:', error);
-          return null;
+          console.error('localStorage getItem error:', error)
+          return null
         }
       },
       setItem: async (key: string, value: string) => {
         try {
-          window.localStorage.setItem(key, value);
+          window.localStorage.setItem(key, value)
         } catch (error) {
-          console.error('localStorage setItem error:', error);
+          console.error('localStorage setItem error:', error)
         }
       },
       removeItem: async (key: string) => {
         try {
-          window.localStorage.removeItem(key);
+          window.localStorage.removeItem(key)
         } catch (error) {
-          console.error('localStorage removeItem error:', error);
+          console.error('localStorage removeItem error:', error)
         }
       },
     }
@@ -66,8 +66,9 @@ const createWebStorageAdapter = () => {
 
   // In-memory fallback for server-side or restricted environments
   const memoryStorage: Record<string, string> = {}
-  console.warn('Using in-memory storage fallback - sessions will not persist across page reloads');
-  
+  console.warn(
+    'Using in-memory storage fallback - sessions will not persist across page reloads',
+  )
   return {
     getItem: async (key: string) => memoryStorage[key] ?? null,
     setItem: async (key: string, value: string) => {
@@ -80,7 +81,8 @@ const createWebStorageAdapter = () => {
 }
 
 // Dynamically select storage adapter based on platform
-const storageAdapter = Platform.OS === 'web' ? createWebStorageAdapter() : ExpoSecureStoreAdapter
+const storageAdapter =
+  Platform.OS === 'web' ? createWebStorageAdapter() : ExpoSecureStoreAdapter
 
 // Create Supabase client with enhanced configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -88,18 +90,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: storageAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: Platform.OS === 'web', // Only enable for web
-    // flowType: 'pkce', // Use PKCE flow for better security
-    debug: false, // Enable debug logging in development
+    detectSessionInUrl: Platform.OS === 'web',
+    // flowType: 'pkce',
+    debug: false,
   },
   global: {
-    headers: {
-      'X-Client-Info': `healthcare-app-${Platform.OS}`,
-    },
+    headers: { 'X-Client-Info': `healthcare-app-${Platform.OS}` },
   },
 })
 
+// ---------------------
 // Database types
+// ---------------------
+
 export interface Patient {
   id: string
   auth_user_id: string
@@ -142,11 +145,20 @@ export interface Admin {
   updated_at: string
 }
 
+/** Typed alias for our JSONB location shape on visits */
+export interface VisitLocation {
+  lat: number
+  lon: number
+  accuracy?: number | null
+  name?: string | null
+}
+
 export interface Visit {
   id: string
   patient_id: string
   doctor_id: string
   visit_date: string
+
   weight?: number
   height?: number
   systolic_bp?: number
@@ -161,14 +173,18 @@ export interface Visit {
   treatment_notes?: string
   prescribed_medications?: string
   follow_up_instructions?: string
+
+  visit_type?: 'in_person' | 'virtual_consultation' | 'self_recorded' | string
+  location?: VisitLocation | null
+
   created_at: string
   updated_at: string
 }
 
 export interface ChatMessage {
   id: string
-  patient_id: string;
-  session_id: string;
+  patient_id: string
+  session_id: string
   role: 'user' | 'ai'
   message: string
   context_visits?: string[]
@@ -182,10 +198,16 @@ export interface UserRole {
   created_at: string
 }
 
-// Helper functions with enhanced error handling
+// ---------------------
+// Helpers
+// ---------------------
+
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
     if (error) {
       console.error('Error getting current user:', error)
       return null
@@ -204,12 +226,10 @@ export const getUserRole = async (userId: string): Promise<UserRole | null> => {
       .select('*')
       .eq('auth_user_id', userId)
       .maybeSingle()
-    
     if (error) {
       console.error('Error fetching user role:', error)
       return null
     }
-    
     return data
   } catch (error) {
     console.error('Unexpected error fetching user role:', error)
@@ -224,12 +244,10 @@ export const getPatientProfile = async (userId: string): Promise<Patient | null>
       .select('*')
       .eq('auth_user_id', userId)
       .single()
-    
     if (error) {
       console.error('Error fetching patient profile:', error)
       return null
     }
-    
     return data
   } catch (error) {
     console.error('Unexpected error fetching patient profile:', error)
@@ -244,12 +262,10 @@ export const getDoctorProfile = async (userId: string): Promise<FieldDoctor | nu
       .select('*')
       .eq('auth_user_id', userId)
       .single()
-    
     if (error) {
       console.error('Error fetching doctor profile:', error)
       return null
     }
-    
     return data
   } catch (error) {
     console.error('Unexpected error fetching doctor profile:', error)
@@ -264,15 +280,49 @@ export const getAdminProfile = async (userId: string): Promise<Admin | null> => 
       .select('*')
       .eq('auth_user_id', userId)
       .single()
-    
     if (error) {
       console.error('Error fetching admin profile:', error)
       return null
     }
-    
     return data
   } catch (error) {
     console.error('Unexpected error fetching admin profile:', error)
     return null
   }
+}
+
+/** Small pure helpers for showing a compact location label in cards */
+export const shortLocationFromName = (name: string): string => {
+  const parts = name
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const countryFull = parts[parts.length - 1] || ''
+  const countryCode = /united states/i.test(countryFull)
+    ? 'US'
+    : /india/i.test(countryFull)
+      ? 'IN'
+      : countryFull.length <= 3
+        ? countryFull.toUpperCase()
+        : countryFull.slice(0, 2).toUpperCase()
+
+  const city = parts[parts.length - 3] || parts[parts.length - 2] || parts[0]
+  const street = parts[0]
+  const looksLikeStreet =
+    /\d/.test(street) ||
+    /(road|rd|street|st|avenue|ave|blvd|lane|ln|dr|terrace|trl)/i.test(street)
+
+  return looksLikeStreet
+    ? `${street}, ${city}, ${countryCode}`
+    : `${city}, ${countryCode}`
+}
+
+export const getVisitShortLocation = (visit: Visit): string | null => {
+  const loc = visit.location
+  if (!loc) return null
+  if (loc.name) return shortLocationFromName(loc.name)
+  if (typeof loc.lat === 'number' && typeof loc.lon === 'number') {
+    return `${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)}`
+  }
+  return null
 }

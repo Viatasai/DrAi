@@ -23,22 +23,20 @@ const theme = {
 function RootLayoutNav() {
   const { loading } = useAuth()
 
- 
   // if (loading) {
   //   return <Loader isOpen={true} />
   // }
 
   return (
     <>
-   
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="auth" options={{ headerShown: false }} />
-      <Stack.Screen name="patient" options={{ headerShown: false }} />
-      <Stack.Screen name="doctor" options={{ headerShown: false }} />
-      <Stack.Screen name="admin" options={{ headerShown: false }} />
-    </Stack>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen name="patient" options={{ headerShown: false }} />
+        <Stack.Screen name="doctor" options={{ headerShown: false }} />
+        <Stack.Screen name="admin" options={{ headerShown: false }} />
+      </Stack>
 
-    <Toast config={toastConfig} />
+      <Toast config={toastConfig} />
     </>
   )
 }

@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -7,23 +7,23 @@ const corsHeaders = {
 }
 
 interface VisitData {
-  id: string;
-  patient_id: string;
-  visit_date: string;
-  weight?: number;
-  height?: number;
-  systolic_bp?: number;
-  diastolic_bp?: number;
-  heart_rate?: number;
-  temperature?: number;
-  blood_sugar?: number;
-  oxygen_saturation?: number;
-  respiratory_rate?: number;
-  symptoms?: string;
-  diagnosis?: string;
-  treatment_notes?: string;
-  prescribed_medications?: string;
-  follow_up_instructions?: string;
+  id: string
+  patient_id: string
+  visit_date: string
+  weight?: number
+  height?: number
+  systolic_bp?: number
+  diastolic_bp?: number
+  heart_rate?: number
+  temperature?: number
+  blood_sugar?: number
+  oxygen_saturation?: number
+  respiratory_rate?: number
+  symptoms?: string
+  diagnosis?: string
+  treatment_notes?: string
+  prescribed_medications?: string
+  follow_up_instructions?: string
 }
 
 serve(async (req) => {
@@ -36,19 +36,16 @@ serve(async (req) => {
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
     const { visitData }: { visitData: VisitData } = await req.json()
 
     if (!visitData) {
-      return new Response(
-        JSON.stringify({ error: 'Visit data is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Visit data is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Create a comprehensive text representation of the visit for embedding
@@ -58,7 +55,7 @@ serve(async (req) => {
     const openaiResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -70,13 +67,10 @@ serve(async (req) => {
     if (!openaiResponse.ok) {
       const error = await openaiResponse.text()
       console.error('OpenAI API error:', error)
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate embedding' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Failed to generate embedding' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     const embeddingData = await openaiResponse.json()
@@ -92,34 +86,30 @@ serve(async (req) => {
       console.error('Supabase update error:', updateError)
       return new Response(
         JSON.stringify({ error: 'Failed to update visit with embedding' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       )
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Embedding generated and stored successfully',
-        visitId: visitData.id 
+        visitId: visitData.id,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     )
-
   } catch (error) {
     console.error('Error in generate-embeddings function:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })
 
@@ -139,8 +129,10 @@ function createVisitText(visit: VisitData): string {
   if (visit.heart_rate) vitals.push(`Heart Rate: ${visit.heart_rate} bpm`)
   if (visit.temperature) vitals.push(`Temperature: ${visit.temperature}°C`)
   if (visit.blood_sugar) vitals.push(`Blood Sugar: ${visit.blood_sugar} mg/dL`)
-  if (visit.oxygen_saturation) vitals.push(`Oxygen Saturation: ${visit.oxygen_saturation}%`)
-  if (visit.respiratory_rate) vitals.push(`Respiratory Rate: ${visit.respiratory_rate} breaths/min`)
+  if (visit.oxygen_saturation)
+    vitals.push(`Oxygen Saturation: ${visit.oxygen_saturation}%`)
+  if (visit.respiratory_rate)
+    vitals.push(`Respiratory Rate: ${visit.respiratory_rate} breaths/min`)
 
   if (vitals.length > 0) {
     parts.push(`Vital Signs: ${vitals.join(', ')}`)
@@ -185,4 +177,3 @@ Environment variables needed:
 - SUPABASE_URL: Your Supabase project URL
 - SUPABASE_SERVICE_ROLE_KEY: Your Supabase service role key
 */
-

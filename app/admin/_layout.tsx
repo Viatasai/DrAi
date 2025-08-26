@@ -15,8 +15,6 @@ export default function AdminLayout() {
     }
   }, [user, userRole, loading])
 
- 
-
   if (!user || !userRole || userRole.role !== 'admin') {
     return null // Will redirect in useEffect
   }
@@ -74,4 +72,3 @@ export default function AdminLayout() {
     </Tabs>
   )
 }
-

@@ -59,9 +59,9 @@
 //     if (!patientId || !message) {
 //       return new Response(
 //         JSON.stringify({ error: 'Patient ID and message are required' }),
-//         { 
-//           status: 400, 
-//           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+//         {
+//           status: 400,
+//           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 //         }
 //       )
 //     }
@@ -76,9 +76,9 @@
 //     if (patientError || !patient) {
 //       return new Response(
 //         JSON.stringify({ error: 'Patient not found' }),
-//         { 
-//           status: 404, 
-//           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+//         {
+//           status: 404,
+//           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 //         }
 //       )
 //     }
@@ -107,8 +107,8 @@
 //         vitals: {
 //           weight: visit.weight,
 //           height: visit.height,
-//           blood_pressure: visit.systolic_bp && visit.diastolic_bp 
-//             ? `${visit.systolic_bp}/${visit.diastolic_bp}` 
+//           blood_pressure: visit.systolic_bp && visit.diastolic_bp
+//             ? `${visit.systolic_bp}/${visit.diastolic_bp}`
 //             : null,
 //           heart_rate: visit.heart_rate,
 //           temperature: visit.temperature,
@@ -160,9 +160,9 @@
 //     if (!geminiResponse) {
 //       return new Response(
 //         JSON.stringify({ error: 'Failed to get AI response' }),
-//         { 
-//           status: 500, 
-//           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+//         {
+//           status: 500,
+//           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 //         }
 //       )
 //     }
@@ -222,10 +222,7 @@
 //     // If diagnosis is detected, create a new visit record
 //     let newVisitId = null
 //     if (diagnosisResult.hasDiagnosis && diagnosisResult.diagnosis) {
-     
-   
 
-      
 //         const { data: newVisit, error: visitError } = await supabaseClient
 //           .from('visits')
 //           .insert({
@@ -246,7 +243,7 @@
 
 //         if (!visitError && newVisit) {
 //           newVisitId = newVisit.id
-          
+
 //           // Link the new visit to the chat messages
 //           await supabaseClient
 //             .from('chat_message_visits')
@@ -260,7 +257,7 @@
 //                 visit_id: newVisit.id
 //               }
 //             ])
-          
+
 //           // Generate embedding for the new visit
 //           await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`, {
 //             method: 'POST',
@@ -273,11 +270,11 @@
 //             })
 //           })
 //         }
-      
+
 //     }
 
 //     return new Response(
-//       JSON.stringify({ 
+//       JSON.stringify({
 //         success: true,
 //         response: geminiResponse,
 //         diagnosisDetected: diagnosisResult.hasDiagnosis,
@@ -290,9 +287,9 @@
 //         patientId,
 //         sessionId
 //       }),
-//       { 
-//         status: 200, 
-//         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+//       {
+//         status: 200,
+//         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 //       }
 //     )
 
@@ -300,9 +297,9 @@
 //     console.error('Error in enhanced gemini-chat function:', error)
 //     return new Response(
 //       JSON.stringify({ error: 'Internal server error' }),
-//       { 
-//         status: 500, 
-//         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+//       {
+//         status: 500,
+//         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 //       }
 //     )
 //   }
@@ -336,11 +333,11 @@
 //   if (patient.medical_history) {
 //     prompt += `\n🏥 Medical History: ${patient.medical_history}`
 //   }
-  
+
 //   if (patient.allergies) {
 //     prompt += `\n⚠️ Known Allergies: ${patient.allergies}`
 //   }
-  
+
 //   if (patient.current_medications) {
 //     prompt += `\n💊 Current Medications: ${patient.current_medications}`
 //   }
@@ -354,7 +351,7 @@
 
 //   if (visitHistory.length > 0) {
 //     prompt += `\n\n📋 COMPLETE MEDICAL HISTORY (Chronological):\n`
-    
+
 //     visitHistory.forEach((visit, index) => {
 //       prompt += `\n📅 Visit ${index + 1}: ${new Date(visit.visit_date).toLocaleDateString()} - Dr. ${visit.doctor_name}`
 //       if (visit.doctor_specialization) {
@@ -365,7 +362,7 @@
 //       if (visit.treatment_notes) prompt += `\n   💉 Treatment: ${visit.treatment_notes}`
 //       if (visit.prescribed_medications) prompt += `\n   💊 Medications: ${visit.prescribed_medications}`
 //       if (visit.follow_up_instructions) prompt += `\n   📝 Follow-up: ${visit.follow_up_instructions}`
-      
+
 //       // Add vital signs
 //       const vitals = []
 //       if (visit.vitals.blood_pressure) vitals.push(`BP: ${visit.vitals.blood_pressure}`)
@@ -422,7 +419,7 @@
 
 // function createConversationContext(history: any[], currentMessage: string): string {
 //   let context = "💬 CONSULTATION SESSION:\n\n"
-  
+
 //   if (history.length > 0) {
 //     context += "Previous conversation:\n"
 //     history.forEach((msg, index) => {
@@ -430,9 +427,9 @@
 //       context += `${role}: ${msg.message}\n\n`
 //     })
 //   }
-  
+
 //   context += `👤 Patient (Current): ${currentMessage}\n\n🩺 Dr. AI, please respond with your medical expertise, asking appropriate follow-up questions or providing diagnosis if you have sufficient information.`
-  
+
 //   return context
 // }
 
@@ -486,11 +483,11 @@
 //     }
 
 //     const data = await response.json()
-    
+
 //     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
 //       return data.candidates[0].content.parts[0].text
 //     }
-    
+
 //     return null
 //   } catch (error) {
 //     console.error('Error calling Gemini API:', error)
@@ -542,7 +539,7 @@
 //     if (analysisResponse.ok) {
 //       const analysisData = await analysisResponse.json()
 //       const analysisText = analysisData.candidates[0].content.parts[0].text
-      
+
 //       const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
 //       if (jsonMatch) {
 //         try {
@@ -583,7 +580,7 @@
 // - SUPABASE_SERVICE_ROLE_KEY: Your Supabase service role key
 // */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -592,38 +589,38 @@ const corsHeaders = {
 }
 
 interface ChatRequest {
-  patientId: string;
-  message: string;
+  patientId: string
+  message: string
   conversationHistory?: Array<{
-    role: 'user' | 'ai';
-    message: string;
-    timestamp: string;
-  }>;
-  sessionId?: string;
-  doctorId?: string; // Optional: if the chat is with a specific doctor
-  visitId?: string; // Optional: if this is a follow-up on an existing visit
+    role: 'user' | 'ai'
+    message: string
+    timestamp: string
+  }>
+  sessionId?: string
+  doctorId?: string // Optional: if the chat is with a specific doctor
+  visitId?: string // Optional: if this is a follow-up on an existing visit
 }
 
 interface VisitContext {
-  id: string;
-  visit_date: string;
-  symptoms: string;
-  diagnosis: string;
-  treatment_notes: string;
-  prescribed_medications: string;
-  follow_up_instructions: string;
-  vitals: any;
-  doctor_name: string;
-  similarity?: number;
+  id: string
+  visit_date: string
+  symptoms: string
+  diagnosis: string
+  treatment_notes: string
+  prescribed_medications: string
+  follow_up_instructions: string
+  vitals: any
+  doctor_name: string
+  similarity?: number
 }
 
 interface DiagnosisResult {
-  hasDiagnosis: boolean;
-  diagnosis?: string;
-  confidence?: string;
-  recommendedTreatment?: string;
-  followUpInstructions?: string;
-  urgencyLevel?: 'low' | 'medium' | 'high' | 'urgent';
+  hasDiagnosis: boolean
+  diagnosis?: string
+  confidence?: string
+  recommendedTreatment?: string
+  followUpInstructions?: string
+  urgencyLevel?: 'low' | 'medium' | 'high' | 'urgent'
 }
 
 serve(async (req) => {
@@ -636,18 +633,25 @@ serve(async (req) => {
     // Create Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    const { patientId, message, conversationHistory = [], sessionId, doctorId, visitId }: ChatRequest = await req.json()
+    const {
+      patientId,
+      message,
+      conversationHistory = [],
+      sessionId,
+      doctorId,
+      visitId,
+    }: ChatRequest = await req.json()
 
     if (!patientId || !message) {
       return new Response(
         JSON.stringify({ error: 'Patient ID and message are required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       )
     }
 
@@ -659,29 +663,28 @@ serve(async (req) => {
       .single()
 
     if (patientError || !patient) {
-      return new Response(
-        JSON.stringify({ error: 'Patient not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Patient not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Get ALL previous visits for comprehensive context
     const { data: allVisits, error: visitsError } = await supabaseClient
       .from('visits')
-      .select(`
+      .select(
+        `
         *,
         field_doctors(name, specialization)
-      `)
+      `,
+      )
       .eq('patient_id', patientId)
       .order('visit_date', { ascending: false })
       .limit(10) // Get last 10 visits for context
 
     let visitHistory: VisitContext[] = []
     if (!visitsError && allVisits) {
-      visitHistory = allVisits.map(visit => ({
+      visitHistory = allVisits.map((visit) => ({
         id: visit.id,
         visit_date: visit.visit_date,
         symptoms: visit.symptoms || '',
@@ -692,9 +695,10 @@ serve(async (req) => {
         vitals: {
           weight: visit.weight,
           height: visit.height,
-          blood_pressure: visit.systolic_bp && visit.diastolic_bp 
-            ? `${visit.systolic_bp}/${visit.diastolic_bp}` 
-            : null,
+          blood_pressure:
+            visit.systolic_bp && visit.diastolic_bp
+              ? `${visit.systolic_bp}/${visit.diastolic_bp}`
+              : null,
           heart_rate: visit.heart_rate,
           temperature: visit.temperature,
           blood_sugar: visit.blood_sugar,
@@ -702,24 +706,27 @@ serve(async (req) => {
           respiratory_rate: visit.respiratory_rate,
         },
         doctor_name: visit.field_doctors?.name || 'Unknown',
-        doctor_specialization: visit.field_doctors?.specialization || ''
+        doctor_specialization: visit.field_doctors?.specialization || '',
       }))
     }
 
     // Get similar visits for additional context using existing similarity search
-    const similarityResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/similarity-search`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        'Content-Type': 'application/json',
+    const similarityResponse = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/similarity-search`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId,
+          query: message,
+          limit: 3,
+          threshold: 0.5,
+        }),
       },
-      body: JSON.stringify({
-        patientId,
-        query: message,
-        limit: 3,
-        threshold: 0.5
-      })
-    })
+    )
 
     let similarVisits: VisitContext[] = []
     if (similarityResponse.ok) {
@@ -736,24 +743,30 @@ serve(async (req) => {
       .limit(20)
 
     // Create enhanced system prompt
-    const systemPrompt = createEnhancedSystemPrompt(patient, visitHistory, similarVisits, recentChats || [])
+    const systemPrompt = createEnhancedSystemPrompt(
+      patient,
+      visitHistory,
+      similarVisits,
+      recentChats || [],
+    )
     const conversationContext = createConversationContext(conversationHistory, message)
 
     // Call Gemini API with enhanced prompt
     const geminiResponse = await callGeminiAPI(systemPrompt, conversationContext)
 
     if (!geminiResponse) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to get AI response' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      return new Response(JSON.stringify({ error: 'Failed to get AI response' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Analyze response for diagnosis
-    const diagnosisResult = await analyzeDiagnosis(geminiResponse, systemPrompt, conversationContext)
+    const diagnosisResult = await analyzeDiagnosis(
+      geminiResponse,
+      systemPrompt,
+      conversationContext,
+    )
 
     // Store user message
     const { data: userMessage } = await supabaseClient
@@ -762,7 +775,7 @@ serve(async (req) => {
         patient_id: patientId,
         role: 'user',
         message,
-        session_id: sessionId
+        session_id: sessionId,
       })
       .select()
       .single()
@@ -775,46 +788,47 @@ serve(async (req) => {
         role: 'ai',
         message: geminiResponse,
         session_id: sessionId,
-        has_diagnosis: diagnosisResult.hasDiagnosis
+        has_diagnosis: diagnosisResult.hasDiagnosis,
       })
       .select()
       .single()
 
     // Link relevant visits to chat messages
-    const visitIds = [...new Set([...visitHistory.slice(0, 5).map(v => v.id), ...similarVisits.map(v => v.id)])]
+    const visitIds = [
+      ...new Set([
+        ...visitHistory.slice(0, 5).map((v) => v.id),
+        ...similarVisits.map((v) => v.id),
+      ]),
+    ]
     if (visitIds.length > 0) {
       // Link visits to user message
-      await supabaseClient
-        .from('chat_message_visits')
-        .insert(
-          visitIds.map(visitId => ({
-            chat_message_id: userMessage.id,
-            visit_id: visitId
-          }))
-        )
+      await supabaseClient.from('chat_message_visits').insert(
+        visitIds.map((visitId) => ({
+          chat_message_id: userMessage.id,
+          visit_id: visitId,
+        })),
+      )
 
       // Link visits to AI message
-      await supabaseClient
-        .from('chat_message_visits')
-        .insert(
-          visitIds.map(visitId => ({
-            chat_message_id: aiMessage.id,
-            visit_id: visitId
-          }))
-        )
+      await supabaseClient.from('chat_message_visits').insert(
+        visitIds.map((visitId) => ({
+          chat_message_id: aiMessage.id,
+          visit_id: visitId,
+        })),
+      )
     }
 
     // Handle visit creation or update based on diagnosis
     let targetVisitId = null
     let visitAction = 'none'
-    
+
     if (diagnosisResult.hasDiagnosis && diagnosisResult.diagnosis) {
       const symptoms = extractSymptomsFromConversation(conversationHistory, message)
-      
+
       if (visitId) {
         // UPDATE EXISTING VISIT
         console.log(`Updating existing visit: ${visitId}`)
-        
+
         // First, verify the visit exists and belongs to this patient
         const { data: existingVisit, error: fetchError } = await supabaseClient
           .from('visits')
@@ -827,43 +841,43 @@ serve(async (req) => {
           console.error('Visit not found or access denied:', fetchError)
           return new Response(
             JSON.stringify({ error: 'Visit not found or access denied' }),
-            { 
-              status: 404, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
+            {
+              status: 404,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            },
           )
         }
 
         // Prepare update data - only update fields that have new values
         const updateData: any = {
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         }
 
         // Update symptoms (append new symptoms if existing ones exist)
         if (symptoms) {
-          updateData.symptoms = existingVisit.symptoms 
-            ? `${existingVisit.symptoms}; ${symptoms}` 
+          updateData.symptoms = existingVisit.symptoms
+            ? `${existingVisit.symptoms}; ${symptoms}`
             : symptoms
         }
 
         // Update diagnosis (append or replace based on confidence)
         if (diagnosisResult.diagnosis) {
-          updateData.diagnosis = existingVisit.diagnosis 
-            ? `${existingVisit.diagnosis}; ${diagnosisResult.diagnosis}` 
+          updateData.diagnosis = existingVisit.diagnosis
+            ? `${existingVisit.diagnosis}; ${diagnosisResult.diagnosis}`
             : diagnosisResult.diagnosis
         }
 
         // Update treatment notes
         if (diagnosisResult.recommendedTreatment) {
-          updateData.treatment_notes = existingVisit.treatment_notes 
-            ? `${existingVisit.treatment_notes}; ${diagnosisResult.recommendedTreatment}` 
+          updateData.treatment_notes = existingVisit.treatment_notes
+            ? `${existingVisit.treatment_notes}; ${diagnosisResult.recommendedTreatment}`
             : diagnosisResult.recommendedTreatment
         }
 
         // Update follow-up instructions
         if (diagnosisResult.followUpInstructions) {
-          updateData.follow_up_instructions = existingVisit.follow_up_instructions 
-            ? `${existingVisit.follow_up_instructions}; ${diagnosisResult.followUpInstructions}` 
+          updateData.follow_up_instructions = existingVisit.follow_up_instructions
+            ? `${existingVisit.follow_up_instructions}; ${diagnosisResult.followUpInstructions}`
             : diagnosisResult.followUpInstructions
         }
 
@@ -871,7 +885,7 @@ serve(async (req) => {
         if (diagnosisResult.confidence) {
           updateData.confidence_level = diagnosisResult.confidence
         }
-        
+
         if (diagnosisResult.urgencyLevel) {
           updateData.urgency_level = diagnosisResult.urgencyLevel
         }
@@ -890,39 +904,40 @@ serve(async (req) => {
         if (!updateError && updatedVisit) {
           targetVisitId = updatedVisit.id
           visitAction = 'updated'
-          
+
           // Link the updated visit to the chat messages
-          await supabaseClient
-            .from('chat_message_visits')
-            .insert([
-              {
-                chat_message_id: userMessage.id,
-                visit_id: updatedVisit.id
-              },
-              {
-                chat_message_id: aiMessage.id,
-                visit_id: updatedVisit.id
-              }
-            ])
-          
-          // Regenerate embedding for the updated visit
-          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-              'Content-Type': 'application/json',
+          await supabaseClient.from('chat_message_visits').insert([
+            {
+              chat_message_id: userMessage.id,
+              visit_id: updatedVisit.id,
             },
-            body: JSON.stringify({
-              visitData: updatedVisit
-            })
-          })
+            {
+              chat_message_id: aiMessage.id,
+              visit_id: updatedVisit.id,
+            },
+          ])
+
+          // Regenerate embedding for the updated visit
+          await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                visitData: updatedVisit,
+              }),
+            },
+          )
         } else {
           console.error('Failed to update visit:', updateError)
         }
       } else {
         // CREATE NEW VISIT
         console.log('Creating new visit...')
-        
+
         const { data: newVisit, error: visitError } = await supabaseClient
           .from('visits')
           .insert({
@@ -936,7 +951,7 @@ serve(async (req) => {
             visit_type: 'virtual_consultation',
             confidence_level: diagnosisResult.confidence || 'medium',
             urgency_level: diagnosisResult.urgencyLevel || 'low',
-            chat_session_id: sessionId
+            chat_session_id: sessionId,
           })
           .select()
           .single()
@@ -944,32 +959,33 @@ serve(async (req) => {
         if (!visitError && newVisit) {
           targetVisitId = newVisit.id
           visitAction = 'created'
-          
+
           // Link the new visit to the chat messages
-          await supabaseClient
-            .from('chat_message_visits')
-            .insert([
-              {
-                chat_message_id: userMessage.id,
-                visit_id: newVisit.id
-              },
-              {
-                chat_message_id: aiMessage.id,
-                visit_id: newVisit.id
-              }
-            ])
-          
-          // Generate embedding for the new visit
-          await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-              'Content-Type': 'application/json',
+          await supabaseClient.from('chat_message_visits').insert([
+            {
+              chat_message_id: userMessage.id,
+              visit_id: newVisit.id,
             },
-            body: JSON.stringify({
-              visitData: newVisit
-            })
-          })
+            {
+              chat_message_id: aiMessage.id,
+              visit_id: newVisit.id,
+            },
+          ])
+
+          // Generate embedding for the new visit
+          await fetch(
+            `${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-embeddings`,
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                visitData: newVisit,
+              }),
+            },
+          )
         } else {
           console.error('Failed to create visit:', visitError)
         }
@@ -977,7 +993,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         response: geminiResponse,
         diagnosisDetected: diagnosisResult.hasDiagnosis,
@@ -989,27 +1005,28 @@ serve(async (req) => {
         contextVisits: visitHistory.length,
         similarVisits: similarVisits.length,
         patientId,
-        sessionId
+        sessionId,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
     )
-
   } catch (error) {
     console.error('Error in enhanced gemini-chat function:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 })
 
-function createEnhancedSystemPrompt(patient: any, visitHistory: VisitContext[], similarVisits: VisitContext[], recentChats: any[]): string {
+function createEnhancedSystemPrompt(
+  patient: any,
+  visitHistory: VisitContext[],
+  similarVisits: VisitContext[],
+  recentChats: any[],
+): string {
   let prompt = `You are Dr. AI, the world's most advanced and empathetic medical AI assistant. You have been trained on the entire corpus of medical knowledge and have the diagnostic capabilities of the world's best doctors combined. You are conducting a virtual consultation with ${patient.name}.
 
 CORE MEDICAL DIRECTIVES:
@@ -1037,11 +1054,11 @@ PATIENT PROFILE:
   if (patient.medical_history) {
     prompt += `\n🏥 Medical History: ${patient.medical_history}`
   }
-  
+
   if (patient.allergies) {
     prompt += `\n⚠️ Known Allergies: ${patient.allergies}`
   }
-  
+
   if (patient.current_medications) {
     prompt += `\n💊 Current Medications: ${patient.current_medications}`
   }
@@ -1055,7 +1072,7 @@ PATIENT PROFILE:
 
   if (visitHistory.length > 0) {
     prompt += `\n\n📋 COMPLETE MEDICAL HISTORY (Chronological):\n`
-    
+
     visitHistory.forEach((visit, index) => {
       prompt += `\n📅 Visit ${index + 1}: ${new Date(visit.visit_date).toLocaleDateString()} - Dr. ${visit.doctor_name}`
       if (visit.doctor_specialization) {
@@ -1064,16 +1081,19 @@ PATIENT PROFILE:
       if (visit.symptoms) prompt += `\n   🤒 Symptoms: ${visit.symptoms}`
       if (visit.diagnosis) prompt += `\n   🎯 Diagnosis: ${visit.diagnosis}`
       if (visit.treatment_notes) prompt += `\n   💉 Treatment: ${visit.treatment_notes}`
-      if (visit.prescribed_medications) prompt += `\n   💊 Medications: ${visit.prescribed_medications}`
-      if (visit.follow_up_instructions) prompt += `\n   📝 Follow-up: ${visit.follow_up_instructions}`
-      
+      if (visit.prescribed_medications)
+        prompt += `\n   💊 Medications: ${visit.prescribed_medications}`
+      if (visit.follow_up_instructions)
+        prompt += `\n   📝 Follow-up: ${visit.follow_up_instructions}`
+
       // Add vital signs
       const vitals = []
       if (visit.vitals.blood_pressure) vitals.push(`BP: ${visit.vitals.blood_pressure}`)
       if (visit.vitals.heart_rate) vitals.push(`HR: ${visit.vitals.heart_rate}`)
       if (visit.vitals.temperature) vitals.push(`Temp: ${visit.vitals.temperature}°C`)
       if (visit.vitals.blood_sugar) vitals.push(`Glucose: ${visit.vitals.blood_sugar}`)
-      if (visit.vitals.oxygen_saturation) vitals.push(`O2: ${visit.vitals.oxygen_saturation}%`)
+      if (visit.vitals.oxygen_saturation)
+        vitals.push(`O2: ${visit.vitals.oxygen_saturation}%`)
       if (visit.vitals.weight) vitals.push(`Weight: ${visit.vitals.weight}kg`)
       if (visit.vitals.height) vitals.push(`Height: ${visit.vitals.height}cm`)
       if (vitals.length > 0) {
@@ -1122,64 +1142,70 @@ RESPOND AS THE WORLD'S BEST DOCTOR - knowledgeable, caring, thorough, and trustw
 }
 
 function createConversationContext(history: any[], currentMessage: string): string {
-  let context = "💬 CONSULTATION SESSION:\n\n"
-  
+  let context = '💬 CONSULTATION SESSION:\n\n'
+
   if (history.length > 0) {
-    context += "Previous conversation:\n"
+    context += 'Previous conversation:\n'
     history.forEach((msg, index) => {
       const role = msg.role === 'user' ? '👤 Patient' : '🩺 Dr. AI'
       context += `${role}: ${msg.message}\n\n`
     })
   }
-  
+
   context += `👤 Patient (Current): ${currentMessage}\n\n🩺 Dr. AI, please respond with your medical expertise, asking appropriate follow-up questions or providing diagnosis if you have sufficient information.`
-  
+
   return context
 }
 
-async function callGeminiAPI(systemPrompt: string, userMessage: string): Promise<string | null> {
+async function callGeminiAPI(
+  systemPrompt: string,
+  userMessage: string,
+): Promise<string | null> {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `${systemPrompt}\n\n${userMessage}`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.8,
-          maxOutputTokens: 2048,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `${systemPrompt}\n\n${userMessage}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 40,
+            topP: 0.8,
+            maxOutputTokens: 2048,
           },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_ONLY_HIGH"
-          }
-        ]
-      })
-    })
+          safetySettings: [
+            {
+              category: 'HARM_CATEGORY_HARASSMENT',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+            },
+            {
+              category: 'HARM_CATEGORY_HATE_SPEECH',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+            },
+            {
+              category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+              threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+            },
+            {
+              category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+              threshold: 'BLOCK_ONLY_HIGH',
+            },
+          ],
+        }),
+      },
+    )
 
     if (!response.ok) {
       console.error('Gemini API error:', await response.text())
@@ -1187,11 +1213,11 @@ async function callGeminiAPI(systemPrompt: string, userMessage: string): Promise
     }
 
     const data = await response.json()
-    
+
     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
       return data.candidates[0].content.parts[0].text
     }
-    
+
     return null
   } catch (error) {
     console.error('Error calling Gemini API:', error)
@@ -1199,7 +1225,11 @@ async function callGeminiAPI(systemPrompt: string, userMessage: string): Promise
   }
 }
 
-async function analyzeDiagnosis(response: string, systemPrompt: string, conversationContext: string): Promise<DiagnosisResult> {
+async function analyzeDiagnosis(
+  response: string,
+  systemPrompt: string,
+  conversationContext: string,
+): Promise<DiagnosisResult> {
   try {
     const analysisPrompt = `Analyze this medical AI response to determine if it contains a clear diagnosis:
 
@@ -1218,32 +1248,35 @@ Return a JSON object with:
 
 Only set hasDiagnosis to true if there's a specific medical diagnosis mentioned (not just general advice).`
 
-    const analysisResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const analysisResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${Deno.env.get('GEMINI_API_KEY')}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: analysisPrompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 512,
+          },
+        }),
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: analysisPrompt
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 512,
-        }
-      })
-    })
+    )
 
     if (analysisResponse.ok) {
       const analysisData = await analysisResponse.json()
       const analysisText = analysisData.candidates[0].content.parts[0].text
-      
+
       const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         try {
@@ -1258,18 +1291,29 @@ Only set hasDiagnosis to true if there's a specific medical diagnosis mentioned 
   }
 
   // Fallback analysis
-  const diagnosisKeywords = ['diagnosis:', 'diagnosed with', 'condition is', 'appears to be', 'likely suffering from']
-  const hasDiagnosis = diagnosisKeywords.some(keyword => response.toLowerCase().includes(keyword))
+  const diagnosisKeywords = [
+    'diagnosis:',
+    'diagnosed with',
+    'condition is',
+    'appears to be',
+    'likely suffering from',
+  ]
+  const hasDiagnosis = diagnosisKeywords.some((keyword) =>
+    response.toLowerCase().includes(keyword),
+  )
 
   return {
     hasDiagnosis,
-    confidence: 'medium'
+    confidence: 'medium',
   }
 }
 
 function extractSymptomsFromConversation(history: any[], currentMessage: string): string {
-  const allMessages = [...history.filter(h => h.role === 'user'), { message: currentMessage }]
-  return allMessages.map(msg => msg.message).join('; ')
+  const allMessages = [
+    ...history.filter((h) => h.role === 'user'),
+    { message: currentMessage },
+  ]
+  return allMessages.map((msg) => msg.message).join('; ')
 }
 
 /* To deploy this function:

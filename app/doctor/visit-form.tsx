@@ -8,17 +8,30 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Patient } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
+import { getCurrentLocation } from '../../utils/location'
+
+async function reverseGeocodeName(lat: number, lon: number): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'DRAI/1.0 (+https://example.org)' },
+    })
+    const json = await res.json()
+    return json?.name || json?.display_name || null
+  } catch {
+    return null
+  }
+}
 
 const AddVitalsScreen: React.FC = () => {
   const { userProfile } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams()
 
-
-const patient = params.patient
-  ? (JSON.parse(params.patient as string) as Patient)
-  : null;
+  const patient = params.patient
+    ? (JSON.parse(params.patient as string) as Patient)
+    : null
 
   // Vital signs
   const [weight, setWeight] = useState('')
@@ -30,107 +43,131 @@ const patient = params.patient
   const [bloodSugar, setBloodSugar] = useState('')
   const [oxygenSaturation, setOxygenSaturation] = useState('')
   const [respiratoryRate, setRespiratoryRate] = useState('')
-//  const vitalsParam = encodeURIComponent(JSON.stringify(vitalData))
-//     router.push(`/doctor/ai-chat-room?vitals=${vitalsParam}`)
-//   }
+
   // Symptoms and observations
   const [symptoms, setSymptoms] = useState('')
   const [observations, setObservations] = useState('')
 
   const validateForm = () => {
-    // Check if at least one vital sign or symptom is entered
-    const hasVitals = weight || height || systolicBp || diastolicBp || heartRate || 
-                     temperature || bloodSugar || oxygenSaturation || respiratoryRate
+    const hasVitals =
+      weight ||
+      height ||
+      systolicBp ||
+      diastolicBp ||
+      heartRate ||
+      temperature ||
+      bloodSugar ||
+      oxygenSaturation ||
+      respiratoryRate
     const hasSymptoms = symptoms.trim()
-    
+
     if (!hasVitals && !hasSymptoms) {
-            showToast.error('Validation Error', 'Please enter at least one vital sign or symptom')
+      showToast.error(
+        'Validation Error',
+        'Please enter at least one vital sign or symptom',
+      )
       return false
     }
 
-    // Validate vital signs ranges
     if (weight && (parseFloat(weight) < 1 || parseFloat(weight) > 500)) {
-            showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
+      showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
       return false
     }
-
     if (height && (parseFloat(height) < 30 || parseFloat(height) > 300)) {
-            showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
+      showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
       return false
     }
-
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-            showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid systolic blood pressure (50-300 mmHg)',
+      )
       return false
     }
-
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-            showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid diastolic blood pressure (30-200 mmHg)',
+      )
       return false
     }
-
     if (heartRate && (parseInt(heartRate) < 30 || parseInt(heartRate) > 250)) {
-            showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
+      showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
       return false
     }
-
     if (temperature && (parseFloat(temperature) < 30 || parseFloat(temperature) > 45)) {
-            showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
+      showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
       return false
     }
-
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-            showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid blood sugar (20-800 mg/dL)',
+      )
       return false
     }
-
-    if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-            showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+    if (
+      oxygenSaturation &&
+      (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid oxygen saturation (50-100%)',
+      )
       return false
     }
-
-    if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-            showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+    if (
+      respiratoryRate &&
+      (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid respiratory rate (5-60 breaths/min)',
+      )
       return false
     }
 
     return true
   }
 
-  const handleStartAIDiagnosis = async() => {
-    const data= await handleSaveEntry()
-    console.log(data.id,'ss')
-    if(data){
-    const vitalData = {
-      patient_id: patient?.id,
-      doctor_id: userProfile?.id,
-      weight: weight ? parseFloat(weight) : null,
-      height: height ? parseFloat(height) : null,
-      systolic_bp: systolicBp ? parseInt(systolicBp) : null,
-      diastolic_bp: diastolicBp ? parseInt(diastolicBp) : null,
-      heart_rate: heartRate ? parseInt(heartRate) : null,
-      temperature: temperature ? parseFloat(temperature) : null,
-      blood_sugar: bloodSugar ? parseFloat(bloodSugar) : null,
-      oxygen_saturation: oxygenSaturation ? parseInt(oxygenSaturation) : null,
-      respiratory_rate: respiratoryRate ? parseInt(respiratoryRate) : null,
-      symptoms: symptoms.trim() || null,
-      observations: observations.trim() || null,
-      visitId: data.id 
+  const handleStartAIDiagnosis = async () => {
+    const data = await handleSaveEntry()
+    if (data) {
+      const vitalData = {
+        patient_id: patient?.id,
+        doctor_id: userProfile?.id,
+        weight: weight ? parseFloat(weight) : null,
+        height: height ? parseFloat(height) : null,
+        systolic_bp: systolicBp ? parseInt(systolicBp) : null,
+        diastolic_bp: diastolicBp ? parseInt(diastolicBp) : null,
+        heart_rate: heartRate ? parseInt(heartRate) : null,
+        temperature: temperature ? parseFloat(temperature) : null,
+        blood_sugar: bloodSugar ? parseFloat(bloodSugar) : null,
+        oxygen_saturation: oxygenSaturation ? parseInt(oxygenSaturation) : null,
+        respiratory_rate: respiratoryRate ? parseInt(respiratoryRate) : null,
+        symptoms: symptoms.trim() || null,
+        observations: observations.trim() || null,
+        visitId: data.id,
+      }
+      const vitalsParam = encodeURIComponent(JSON.stringify(vitalData))
+      router.push(`/doctor/ai-chat-room?vitals=${vitalsParam}`)
     }
-  
-    const vitalsParam = encodeURIComponent(JSON.stringify(vitalData))
-    router.push(`/doctor/ai-chat-room?vitals=${vitalsParam}`)
   }
-  }
+
   const handleSaveEntry = async () => {
     if (!validateForm()) return
-
     setLoading(true)
+
     try {
-      // Prepare visit data as self-recorded entry
+      const loc = await getCurrentLocation()
+      let locName: string | null = loc?.name ?? null
+      if (!locName && loc?.lat && loc?.lon) {
+        locName = await reverseGeocodeName(loc.lat, loc.lon)
+      }
+
       const visitData = {
         patient_id: patient?.id,
-        doctor_id: userProfile?.id, // Self-recorded entry
+        doctor_id: userProfile?.id,
         visit_date: new Date().toISOString(),
         visit_type: 'in_person',
         weight: weight ? parseFloat(weight) : null,
@@ -144,22 +181,30 @@ const patient = params.patient
         respiratory_rate: respiratoryRate ? parseInt(respiratoryRate) : null,
         symptoms: symptoms.trim() || null,
         treatment_notes: observations.trim() || null,
+        location: loc
+          ? {
+              lat: loc.lat,
+              lon: loc.lon,
+              accuracy: loc.accuracy ?? null,
+              name: locName ?? null,
+            }
+          : null,
       }
 
-      const { data,error } = await supabase
+      const { data, error } = await supabase
         .from('visits')
         .insert(visitData)
-        .select().single()
+        .select()
+        .single()
 
       if (error) {
-              showToast.error('Error', 'Failed to save vitals entry')
+        showToast.error('Error', 'Failed to save vitals entry')
         console.error('Error saving vitals:', error)
       } else {
         return data
-        
       }
     } catch (error) {
-            showToast.error('Error', 'An unexpected error occurred')
+      showToast.error('Error', 'An unexpected error occurred')
       console.error('Error saving vitals:', error)
     } finally {
       setLoading(false)
@@ -169,25 +214,22 @@ const patient = params.patient
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={20} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Vitals Entry</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Vital Signs Section */}
+        {/* Vital Signs */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vital Signs</Text>
           <Text style={styles.sectionSubtitle}>Enter any measurements you have</Text>
-          
+
           <View style={styles.inputRow}>
             <CleanTextInput
               label="Weight (kg)"
@@ -273,37 +315,37 @@ const patient = params.patient
           />
         </View>
 
-        {/* Symptoms Section */}
+        {/* Symptoms */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Symptoms</Text>
-          <Text style={styles.sectionSubtitle}>Describe how you're feeling today</Text>
-          
+          <Text style={styles.sectionSubtitle}>
+            Describe how the patient is feeling today
+          </Text>
           <CleanTextInput
             label="Current Symptoms"
             value={symptoms}
             onChangeText={setSymptoms}
-            placeholder="Describe any symptoms you're experiencing..."
+            placeholder="Describe any symptoms..."
             multiline
             numberOfLines={3}
           />
         </View>
 
-        {/* Observations Section */}
+        {/* Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes & Observations</Text>
-          <Text style={styles.sectionSubtitle}>Any additional notes about your health</Text>
-          
+          <Text style={styles.sectionSubtitle}>Any additional notes</Text>
           <CleanTextInput
             label="Additional Notes"
             value={observations}
             onChangeText={setObservations}
-            placeholder="Any other observations, medications taken, activities, etc..."
+            placeholder="Other observations, medications, activities, etc..."
             multiline
             numberOfLines={4}
           />
         </View>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <View style={styles.actionButtons}>
           <Button
             mode="contained"
@@ -311,7 +353,7 @@ const patient = params.patient
             loading={loading}
             disabled={loading}
             style={styles.cancelButton}
-           textColor='white'
+            textColor="white"
             buttonColor="#4285F4"
           >
             {loading ? 'Saving...' : 'Save Entry'}
@@ -319,11 +361,11 @@ const patient = params.patient
 
           <Button
             mode="outlined"
-            onPress={() =>handleStartAIDiagnosis() }
+            onPress={() => handleStartAIDiagnosis()}
             disabled={loading}
             style={styles.cancelButton}
             textColor="white"
-            buttonColor='orange'
+            buttonColor="orange"
           >
             Start AI Diagnosis
           </Button>
@@ -332,7 +374,6 @@ const patient = params.patient
     </SafeAreaView>
   )
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -407,7 +448,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     borderRadius: 12,
     borderColor: '#E8E8E8',
-    width:'50%'
+    width: '50%',
   },
 })
 

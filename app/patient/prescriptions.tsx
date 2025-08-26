@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, Image, Linking, Modal, TouchableOpacity, Platform } from 'react-native'
-import { Card, Text, Button, TextInput, ActivityIndicator, FAB, Chip, IconButton } from 'react-native-paper'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Image,
+  Linking,
+  Modal,
+  TouchableOpacity,
+  Platform,
+} from 'react-native'
+import {
+  Card,
+  Text,
+  Button,
+  TextInput,
+  ActivityIndicator,
+  FAB,
+  Chip,
+  IconButton,
+} from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
@@ -32,7 +51,11 @@ const PrescriptionsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [viewingFile, setViewingFile] = useState<{ url: string; type: 'image' | 'pdf'; name: string } | null>(null)
+  const [viewingFile, setViewingFile] = useState<{
+    url: string
+    type: 'image' | 'pdf'
+    name: string
+  } | null>(null)
 
   // Form fields
   const [prescriptionName, setPrescriptionName] = useState('')
@@ -151,7 +174,7 @@ const PrescriptionsScreen: React.FC = () => {
       setSelectedFile({
         uri: result.assets[0].uri,
         name: `prescription_${Date.now()}.jpg`,
-        type: 'image'
+        type: 'image',
       })
     }
   }
@@ -166,11 +189,13 @@ const PrescriptionsScreen: React.FC = () => {
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0]
         const fileType = asset.mimeType?.includes('pdf') ? 'pdf' : 'image'
-        
+
         setSelectedFile({
           uri: asset.uri,
-          name: asset.name || `prescription_${Date.now()}.${fileType === 'pdf' ? 'pdf' : 'jpg'}`,
-          type: fileType
+          name:
+            asset.name ||
+            `prescription_${Date.now()}.${fileType === 'pdf' ? 'pdf' : 'jpg'}`,
+          type: fileType,
         })
       }
     } catch (error) {
@@ -182,7 +207,7 @@ const PrescriptionsScreen: React.FC = () => {
   const uploadFile = async (uri: string, fileName: string): Promise<string | null> => {
     try {
       console.log('Starting upload for:', fileName, 'from URI:', uri)
-      
+
       const fileExt = fileName.split('.').pop()
       const filePath = `prescriptions/${patient.id}/${Date.now()}_${fileName}`
 
@@ -192,7 +217,7 @@ const PrescriptionsScreen: React.FC = () => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
+
         const arrayBuffer = await response.arrayBuffer()
         console.log('File converted to ArrayBuffer, size:', arrayBuffer.byteLength)
 
@@ -200,7 +225,7 @@ const PrescriptionsScreen: React.FC = () => {
           .from('prescription-files')
           .upload(filePath, arrayBuffer, {
             contentType: fileExt === 'pdf' ? 'application/pdf' : 'image/jpeg',
-            upsert: false
+            upsert: false,
           })
 
         if (error) {
@@ -211,8 +236,11 @@ const PrescriptionsScreen: React.FC = () => {
         console.log('Upload successful:', data.path)
         return data.path
       } catch (arrayBufferError) {
-        console.log('ArrayBuffer method failed, trying FormData method:', arrayBufferError)
-        
+        console.log(
+          'ArrayBuffer method failed, trying FormData method:',
+          arrayBufferError,
+        )
+
         // Method 2: Fallback to FormData approach
         const formData = new FormData()
         formData.append('file', {
@@ -223,12 +251,12 @@ const PrescriptionsScreen: React.FC = () => {
 
         // For FormData, we need to use the REST API directly
         const uploadUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/prescription-files/${filePath}`
-        
+
         const uploadResponse = await fetch(uploadUrl, {
           method: 'POST',
           body: formData,
           headers: {
-            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
           },
         })
 
@@ -250,12 +278,12 @@ const PrescriptionsScreen: React.FC = () => {
   const getSignedUrl = async (filePath: string): Promise<string | null> => {
     try {
       console.log('Attempting to get signed URL for path:', filePath)
-      
+
       // First check if file exists
       const { data: fileData, error: listError } = await supabase.storage
         .from('prescription-files')
         .list(filePath.substring(0, filePath.lastIndexOf('/')), {
-          search: filePath.substring(filePath.lastIndexOf('/') + 1)
+          search: filePath.substring(filePath.lastIndexOf('/') + 1),
         })
 
       if (listError) {
@@ -314,9 +342,7 @@ const PrescriptionsScreen: React.FC = () => {
         original_filename: selectedFile?.name || null,
       }
 
-      const { error } = await supabase
-        .from('prescriptions')
-        .insert(prescriptionData)
+      const { error } = await supabase.from('prescriptions').insert(prescriptionData)
 
       if (error) {
         showToast.error('Failed to save prescription')
@@ -345,10 +371,7 @@ const PrescriptionsScreen: React.FC = () => {
   const deletePrescription = async (id: string, filePath?: string) => {
     try {
       // Delete from database
-      const { error } = await supabase
-        .from('prescriptions')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('prescriptions').delete().eq('id', id)
 
       if (error) {
         showToast.error('Failed to delete prescription')
@@ -393,7 +416,7 @@ const PrescriptionsScreen: React.FC = () => {
       setViewingFile({
         url: signedUrl,
         type: 'image',
-        name: prescription.original_filename || 'Prescription Image'
+        name: prescription.original_filename || 'Prescription Image',
       })
     }
   }
@@ -425,9 +448,7 @@ const PrescriptionsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
         <View style={styles.headerSection}>
@@ -448,7 +469,9 @@ const PrescriptionsScreen: React.FC = () => {
                   </View>
                   <View>
                     <Text style={styles.formTitle}>Add New Prescription</Text>
-                    <Text style={styles.formSubtitle}>Fill in the prescription details</Text>
+                    <Text style={styles.formSubtitle}>
+                      Fill in the prescription details
+                    </Text>
                   </View>
                 </View>
                 <TouchableOpacity onPress={resetForm} style={styles.closeButton}>
@@ -460,7 +483,7 @@ const PrescriptionsScreen: React.FC = () => {
                 {/* Basic Info Section */}
                 <View style={styles.sectionContainer}>
                   <Text style={styles.sectionTitle}>Basic Information</Text>
-                  
+
                   <View style={styles.inputGroup}>
                     <TextInput
                       label="Prescription Name"
@@ -493,20 +516,19 @@ const PrescriptionsScreen: React.FC = () => {
                           activeOutlineColor="#2196F3"
                           theme={{ colors: { background: '#FFFFFF' } }}
                           right={
-                            <TextInput.Icon 
-                              icon="calendar" 
+                            <TextInput.Icon
+                              icon="calendar"
                               iconColor="#2196F3"
                               onPress={openCalendar}
                             />
                           }
                         />
-                        
                       </View>
                       {prescribedDate.length === 0 && (
                         <Text style={styles.requiredText}>* Required</Text>
                       )}
                     </View>
-                    
+
                     <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
                       <TextInput
                         label="Doctor Name"
@@ -544,23 +566,30 @@ const PrescriptionsScreen: React.FC = () => {
                 {/* File Upload Section */}
                 <View style={styles.sectionContainer}>
                   <Text style={styles.sectionTitle}>Attach Prescription</Text>
-                  <Text style={styles.sectionSubtitle}>Upload a photo or PDF of your prescription</Text>
-                  
+                  <Text style={styles.sectionSubtitle}>
+                    Upload a photo or PDF of your prescription
+                  </Text>
+
                   {!selectedFile ? (
                     <View style={styles.uploadContainer}>
                       <View style={styles.uploadArea}>
                         <MaterialIcons name="cloud-upload" size={40} color="#9CA3AF" />
                         <Text style={styles.uploadText}>Choose file to upload</Text>
-                        <Text style={styles.uploadSubtext}>PNG, JPG or PDF up to 10MB</Text>
+                        <Text style={styles.uploadSubtext}>
+                          PNG, JPG or PDF up to 10MB
+                        </Text>
                       </View>
-                      
+
                       <View style={styles.uploadButtons}>
                         <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
                           <MaterialIcons name="camera-alt" size={20} color="#2196F3" />
                           <Text style={styles.uploadButtonText}>Take Photo</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity style={styles.uploadButton} onPress={pickDocument}>
+
+                        <TouchableOpacity
+                          style={styles.uploadButton}
+                          onPress={pickDocument}
+                        >
                           <MaterialIcons name="attach-file" size={20} color="#2196F3" />
                           <Text style={styles.uploadButtonText}>Choose File</Text>
                         </TouchableOpacity>
@@ -569,10 +598,10 @@ const PrescriptionsScreen: React.FC = () => {
                   ) : (
                     <View style={styles.filePreviewContainer}>
                       <View style={styles.filePreviewHeader}>
-                        <MaterialIcons 
-                          name={selectedFile.type === 'pdf' ? 'picture-as-pdf' : 'image'} 
-                          size={24} 
-                          color={selectedFile.type === 'pdf' ? '#f44336' : '#2196F3'} 
+                        <MaterialIcons
+                          name={selectedFile.type === 'pdf' ? 'picture-as-pdf' : 'image'}
+                          size={24}
+                          color={selectedFile.type === 'pdf' ? '#f44336' : '#2196F3'}
                         />
                         <View style={styles.filePreviewInfo}>
                           <Text style={styles.filePreviewName}>{selectedFile.name}</Text>
@@ -580,13 +609,19 @@ const PrescriptionsScreen: React.FC = () => {
                             {selectedFile.type === 'pdf' ? 'PDF Document' : 'Image File'}
                           </Text>
                         </View>
-                        <TouchableOpacity onPress={() => setSelectedFile(null)} style={styles.removeFileButton}>
+                        <TouchableOpacity
+                          onPress={() => setSelectedFile(null)}
+                          style={styles.removeFileButton}
+                        >
                           <MaterialIcons name="close" size={18} color="#f44336" />
                         </TouchableOpacity>
                       </View>
-                      
+
                       {selectedFile.type === 'image' && (
-                        <Image source={{ uri: selectedFile.uri }} style={styles.imagePreview} />
+                        <Image
+                          source={{ uri: selectedFile.uri }}
+                          style={styles.imagePreview}
+                        />
                       )}
                     </View>
                   )}
@@ -594,8 +629,12 @@ const PrescriptionsScreen: React.FC = () => {
 
                 {/* Form Actions */}
                 <View style={styles.formActions}>
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.saveButton, uploading && styles.buttonDisabled]} 
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      styles.saveButton,
+                      uploading && styles.buttonDisabled,
+                    ]}
                     onPress={handleSave}
                     disabled={uploading}
                   >
@@ -608,9 +647,9 @@ const PrescriptionsScreen: React.FC = () => {
                       {uploading ? 'Saving...' : 'Save Prescription'}
                     </Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.actionButton, styles.cancelButton]} 
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.cancelButton]}
                     onPress={resetForm}
                     disabled={uploading}
                   >
@@ -644,7 +683,9 @@ const PrescriptionsScreen: React.FC = () => {
                   </View>
                   <Button
                     mode="text"
-                    onPress={() => deletePrescription(prescription.id, prescription.file_path)}
+                    onPress={() =>
+                      deletePrescription(prescription.id, prescription.file_path)
+                    }
                     textColor="#f44336"
                     compact
                   >
@@ -663,13 +704,16 @@ const PrescriptionsScreen: React.FC = () => {
                 {prescription.file_path && (
                   <View style={styles.fileSection}>
                     <View style={styles.fileInfo}>
-                      <MaterialIcons 
-                        name={prescription.file_type === 'pdf' ? 'picture-as-pdf' : 'image'} 
-                        size={20} 
-                        color={prescription.file_type === 'pdf' ? '#f44336' : '#2196F3'} 
+                      <MaterialIcons
+                        name={
+                          prescription.file_type === 'pdf' ? 'picture-as-pdf' : 'image'
+                        }
+                        size={20}
+                        color={prescription.file_type === 'pdf' ? '#f44336' : '#2196F3'}
                       />
                       <Text style={styles.fileName}>
-                        {prescription.original_filename || `${prescription.file_type?.toUpperCase()} File`}
+                        {prescription.original_filename ||
+                          `${prescription.file_type?.toUpperCase()} File`}
                       </Text>
                     </View>
                     <View style={styles.fileActions}>
@@ -745,7 +789,7 @@ const PrescriptionsScreen: React.FC = () => {
           icon="plus"
           onPress={() => setShowAddForm(true)}
           label="Add Prescription"
-          color='white'
+          color="white"
         />
       )}
     </SafeAreaView>
@@ -785,7 +829,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
     lineHeight: 22,
   },
-  
+
   // Enhanced Form Styles
   formContainer: {
     marginBottom: 24,
@@ -843,7 +887,7 @@ const styles = StyleSheet.create({
   formContent: {
     padding: 20,
   },
-  
+
   // Section Styles
   sectionContainer: {
     marginBottom: 32,
@@ -859,7 +903,7 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginBottom: 20,
   },
-  
+
   // Input Styles
   inputGroup: {
     marginBottom: 20,
@@ -906,7 +950,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 4,
   },
-  
+
   // Upload Styles
   uploadContainer: {
     borderWidth: 2,
@@ -954,7 +998,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2196F3',
   },
-  
+
   // File Preview Styles
   filePreviewContainer: {
     borderWidth: 1,
@@ -996,7 +1040,7 @@ const styles = StyleSheet.create({
     height: 200,
     resizeMode: 'cover',
   },
-  
+
   // Action Button Styles
   formActions: {
     gap: 12,
@@ -1037,7 +1081,7 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  
+
   // Prescription Card Styles
   prescriptionCard: {
     marginBottom: 16,
@@ -1126,7 +1170,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontStyle: 'italic',
   },
-  
+
   // FAB Styles
   fab: {
     position: 'absolute',
@@ -1136,7 +1180,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2196F3',
     borderRadius: 16,
   },
-  
+
   // Modal Styles
   modalContainer: {
     flex: 1,
@@ -1159,7 +1203,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
-  
+
   // Calendar Styles
   calendarModalOverlay: {
     flex: 1,

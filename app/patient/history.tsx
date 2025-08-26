@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native'
 import { Text, FAB, Button, ActivityIndicator } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
-import { supabase, Visit, Patient } from '../../lib/supabase'
+import { supabase, Patient, Visit, getVisitShortLocation } from '../../lib/supabase'
 import { useRouter } from 'expo-router'
 
 const PatientHistoryScreen: React.FC = () => {
@@ -25,30 +31,25 @@ const PatientHistoryScreen: React.FC = () => {
 
   const loadVisits = async () => {
     if (!patient) return
-
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('visits')
-        .select(`
+        .select(
+          `
           *,
           field_doctors (name, specialization)
-        `)
+        `,
+        )
         .eq('patient_id', patient.id)
         .order('visit_date', { ascending: false })
 
-      if (error) {
-        console.error('Error loading visits:', error)
-      } else {
-        const physicalVisits = data?.filter(visit => visit.visit_type !== 'virtual_consultation') || []
-        setVisits(physicalVisits || [])
-        setFilteredVisits(physicalVisits || [])
+      const physical = data?.filter((v) => v.visit_type !== 'virtual_consultation') || []
+      setVisits(physical)
+      setFilteredVisits(physical)
 
-        const virtual_consultation = data?.filter(visit => visit.visit_type === 'virtual_consultation') || []
-        setAiSessions(virtual_consultation)
-        setFilteredAiSessions(virtual_consultation)
-      }
-    } catch (error) {
-      console.error('Error loading visits:', error)
+      const virtuals = data?.filter((v) => v.visit_type === 'virtual_consultation') || []
+      setAiSessions(virtuals)
+      setFilteredAiSessions(virtuals)
     } finally {
       setLoading(false)
     }
@@ -60,52 +61,39 @@ const PatientHistoryScreen: React.FC = () => {
     setRefreshing(false)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (s: string) =>
+    new Date(s).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     })
-  }
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatTime = (s: string) =>
+    new Date(s).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   const getVitalChips = (visit: Visit) => {
-    const vitals = []
-
-    if (visit.weight) vitals.push({ label: `${visit.weight} kg`, icon: 'scale' })
+    const chips: { label: string; unit?: string; alert?: boolean }[] = []
+    if (visit.weight) chips.push({ label: `${visit.weight} kg` })
     if (visit.systolic_bp && visit.diastolic_bp) {
-      const isHigh = visit.systolic_bp > 140 || visit.diastolic_bp > 90
-      vitals.push({
+      const alert = visit.systolic_bp > 140 || visit.diastolic_bp > 90
+      chips.push({
         label: `${visit.systolic_bp}/${visit.diastolic_bp}`,
         unit: 'mmHg',
-        alert: isHigh
+        alert,
       })
     }
-    if (visit.heart_rate) vitals.push({ label: `${visit.heart_rate}`, unit: 'bpm' })
-    if (visit.temperature) {
-      const isHigh = visit.temperature > 37.5
-      vitals.push({
-        label: `${visit.temperature}°C`,
-        alert: isHigh
-      })
-    }
-    if (visit.blood_sugar) {
-      const isHigh = visit.blood_sugar > 180
-      vitals.push({
+    if (visit.heart_rate) chips.push({ label: `${visit.heart_rate}`, unit: 'bpm' })
+    if (visit.temperature)
+      chips.push({ label: `${visit.temperature}°C`, alert: visit.temperature > 37.5 })
+    if (visit.blood_sugar)
+      chips.push({
         label: `${visit.blood_sugar}`,
         unit: 'mg/dL',
-        alert: isHigh
+        alert: visit.blood_sugar > 180,
       })
-    }
-    if (visit.oxygen_saturation) vitals.push({ label: `${visit.oxygen_saturation}%`, unit: 'O₂' })
-
-    return vitals
+    if (visit.oxygen_saturation)
+      chips.push({ label: `${visit.oxygen_saturation}%`, unit: 'O₂' })
+    return chips
   }
 
   const handleEditVisit = (visit: Visit) => {
@@ -113,26 +101,29 @@ const PatientHistoryScreen: React.FC = () => {
     router.push(`/patient/edit-visit?visit=${visitParam}`)
   }
 
-  const renderVisitCard = (visit: Visit, index: number) => (
+  const renderVisitCard = (visit: Visit) => (
     <View key={visit.id} style={styles.visitCard}>
-      {/* Visit Header */}
       <View style={styles.visitHeader}>
         <View style={styles.visitDateContainer}>
           <Text style={styles.visitDate}>{formatDate(visit.visit_date)}</Text>
-          <Text style={styles.visitTime}>{formatTime(visit.visit_date)}</Text>
+          <Text style={styles.visitTime}>
+            {formatTime(visit.visit_date)}
+            {(() => {
+              const label = getVisitShortLocation(visit as Visit)
+              return label ? ` • ${label}` : ''
+            })()}
+          </Text>
         </View>
-        {
-          visit.doctor_id &&
+        {visit.doctor_id ? (
           <TouchableOpacity
             style={styles.editButton}
             onPress={() => handleEditVisit(visit)}
           >
             <MaterialIcons name="edit" size={20} color="#4285F4" />
           </TouchableOpacity>
-        }
+        ) : null}
       </View>
 
-      {/* Doctor Info */}
       {(visit as any).field_doctors ? (
         <View style={styles.doctorInfo}>
           <View style={styles.doctorIcon}>
@@ -159,77 +150,68 @@ const PatientHistoryScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Vital Signs */}
-      {getVitalChips(visit).length > 0 && (
-        <View style={styles.vitalsSection}>
-          <Text style={styles.sectionTitle}>Vitals</Text>
-          <View style={styles.vitalsGrid}>
-            {getVitalChips(visit).map((vital, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.vitalChip,
-                  vital.alert && styles.alertChip
-                ]}
-              >
-                <Text style={[styles.vitalValue, vital.alert && styles.alertText]}>
-                  {vital.label}
-                </Text>
-                {vital.unit && (
-                  <Text style={[styles.vitalUnit, vital.alert && styles.alertText]}>
-                    {vital.unit}
+      {(() => {
+        const chips = getVitalChips(visit)
+        if (!chips.length) return null
+        return (
+          <View style={styles.vitalsSection}>
+            <Text style={styles.sectionTitle}>Vitals</Text>
+            <View style={styles.vitalsGrid}>
+              {chips.map((v, i) => (
+                <View key={i} style={[styles.vitalChip, v.alert && styles.alertChip]}>
+                  <Text style={[styles.vitalValue, v.alert && styles.alertText]}>
+                    {v.label}
                   </Text>
-                )}
-              </View>
-            ))}
+                  {v.unit ? (
+                    <Text style={[styles.vitalUnit, v.alert && styles.alertText]}>
+                      {v.unit}
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
-      )}
+        )
+      })()}
 
-      {/* Symptoms */}
-      {visit.symptoms && (
+      {visit.symptoms ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Symptoms</Text>
           <Text style={styles.sectionContent}>{visit.symptoms}</Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Diagnosis */}
-      {visit.diagnosis && (
+      {visit.diagnosis ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Diagnosis</Text>
           <Text style={styles.sectionContent}>{visit.diagnosis}</Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Treatment Notes */}
-      {visit.treatment_notes && (
+      {visit.treatment_notes ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Treatment</Text>
           <Text style={styles.sectionContent}>{visit.treatment_notes}</Text>
         </View>
-      )}
+      ) : null}
 
-      {/* Medications */}
-      {visit.prescribed_medications && (
+      {visit.prescribed_medications ? (
         <View style={styles.medicationSection}>
           <Text style={styles.sectionTitle}>Medications</Text>
           <Text style={styles.medicationContent}>{visit.prescribed_medications}</Text>
         </View>
-      )}
+      ) : null}
     </View>
   )
 
   const renderDoctorTab = () => (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {filteredVisits.length > 0 ? (
-        filteredVisits.map((visit, index) => renderVisitCard(visit, index))
+      {filteredVisits.length ? (
+        filteredVisits.map(renderVisitCard)
       ) : (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
@@ -247,13 +229,11 @@ const PatientHistoryScreen: React.FC = () => {
   const renderAiTab = () => (
     <ScrollView
       contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {filteredAiSessions.length > 0 ? (
-        filteredAiSessions.map((visit, index) => renderVisitCard(visit, index))
+      {filteredAiSessions.length ? (
+        filteredAiSessions.map(renderVisitCard)
       ) : (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
@@ -261,7 +241,8 @@ const PatientHistoryScreen: React.FC = () => {
           </View>
           <Text style={styles.emptyTitle}>No AI sessions yet</Text>
           <Text style={styles.emptyText}>
-            Start a conversation with the AI assistant to see your interaction history here
+            Start a conversation with the AI assistant to see your interaction history
+            here
           </Text>
         </View>
       )}
@@ -270,7 +251,6 @@ const PatientHistoryScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Tab Header */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'doctor' && styles.activeTab]}
@@ -301,38 +281,43 @@ const PatientHistoryScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Loading State */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#4285F4" />
           <Text style={styles.loadingText}>Loading history...</Text>
         </View>
+      ) : activeTab === 'doctor' ? (
+        renderDoctorTab()
       ) : (
-        /* Tab Content */
-        activeTab === 'doctor' ? renderDoctorTab() : renderAiTab()
+        renderAiTab()
       )}
 
-      {/* Sticky Add Button */}
       <FAB
         style={styles.fab}
         onPress={() => router.push('/patient/AddVitals')}
         customSize={56}
         color="#FFFFFF"
         icon={() => (
-          <Text style={{ fontSize: 28,marginLeft:5,marginTop:-5, fontWeight: "bold", color: "#FFFFFF" }}>+</Text>
+          <Text
+            style={{
+              fontSize: 28,
+              marginLeft: 5,
+              marginTop: -5,
+              fontWeight: 'bold',
+              color: '#FFFFFF',
+            }}
+          >
+            +
+          </Text>
         )}
       />
-
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginTop: -55
-  },
+  // styles unchanged from your file
+  container: { flex: 1, backgroundColor: '#FFFFFF', marginTop: -55 },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -351,34 +336,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 8,
   },
-  activeTab: {
-    backgroundColor: '#F0F7FF',
-  },
-  tabText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#999999',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#4285F4',
-    fontWeight: '600',
-  },
+  activeTab: { backgroundColor: '#F0F7FF' },
+  tabText: { marginLeft: 8, fontSize: 16, color: '#999999', fontWeight: '500' },
+  activeTabText: { color: '#4285F4', fontWeight: '600' },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666666',
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 100, // Space for FAB
-  },
+  loadingText: { marginTop: 16, fontSize: 16, color: '#666666' },
+  scrollContent: { padding: 20, paddingBottom: 100 },
   visitCard: {
     backgroundColor: '#FAFAFA',
     borderRadius: 12,
@@ -393,19 +361,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
-  visitDateContainer: {
-    flex: 1,
-  },
-  visitDate: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 4,
-  },
-  visitTime: {
-    fontSize: 14,
-    color: '#666666',
-  },
+  visitDateContainer: { flex: 1 },
+  visitDate: { fontSize: 18, fontWeight: '600', color: '#333333', marginBottom: 4 },
+  visitTime: { fontSize: 14, color: '#666666' },
   editButton: {
     width: 32,
     height: 32,
@@ -434,27 +392,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  doctorDetails: {
-    flex: 1,
-  },
-  doctorName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 2,
-  },
-  doctorSpecialization: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  vitalsSection: {
-    marginBottom: 16,
-  },
-  vitalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  doctorDetails: { flex: 1 },
+  doctorName: { fontSize: 16, fontWeight: '600', color: '#333333', marginBottom: 2 },
+  doctorSpecialization: { fontSize: 14, color: '#666666' },
+  vitalsSection: { marginBottom: 16 },
+  vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   vitalChip: {
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
@@ -464,40 +406,14 @@ const styles = StyleSheet.create({
     minWidth: 80,
     alignItems: 'center',
   },
-  alertChip: {
-    backgroundColor: '#FFF5F5',
-    borderColor: '#FFB3B3',
-  },
-  vitalValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-  },
-  vitalUnit: {
-    fontSize: 12,
-    color: '#666666',
-    marginTop: 2,
-  },
-  alertText: {
-    color: '#D32F2F',
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333333',
-    marginBottom: 8,
-  },
-  sectionContent: {
-    fontSize: 14,
-    color: '#666666',
-    lineHeight: 20,
-  },
-  medicationSection: {
-    marginBottom: 16,
-  },
+  alertChip: { backgroundColor: '#FFF5F5', borderColor: '#FFB3B3' },
+  vitalValue: { fontSize: 16, fontWeight: '600', color: '#333333' },
+  vitalUnit: { fontSize: 12, color: '#666666', marginTop: 2 },
+  alertText: { color: '#D32F2F' },
+  section: { marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#333333', marginBottom: 8 },
+  sectionContent: { fontSize: 14, color: '#666666', lineHeight: 20 },
+  medicationSection: { marginBottom: 16 },
   medicationContent: {
     fontSize: 14,
     color: '#2E7D32',
@@ -508,11 +424,7 @@ const styles = StyleSheet.create({
     borderColor: '#E8F5E8',
     lineHeight: 20,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
+  emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyIcon: {
     width: 80,
     height: 80,
@@ -529,19 +441,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  emptyText: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
+  emptyText: { fontSize: 16, color: '#666666', textAlign: 'center', lineHeight: 24 },
   fab: {
     position: 'absolute',
     margin: 20,
     right: 0,
     bottom: 0,
     backgroundColor: '#4285F4',
-
   },
 })
 

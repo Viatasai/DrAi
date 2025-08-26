@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, ScrollView, Alert } from 'react-native'
-import { Card, Text, TextInput, Button, Divider, ActivityIndicator } from 'react-native-paper'
+import {
+  Card,
+  Text,
+  TextInput,
+  Button,
+  Divider,
+  ActivityIndicator,
+} from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Visit, FieldDoctor } from '../../lib/supabase'
 import { showToast } from '~/utils/toast'
-
 
 const DoctorEditVisitScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -47,10 +53,12 @@ const DoctorEditVisitScreen: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('visits')
-        .select(`
+        .select(
+          `
           *,
           patients (name, age, gender, medical_history, allergies, current_medications)
-        `)
+        `,
+        )
         .eq('id', params.visitId)
         .eq('doctor_id', doctor?.id) // Ensure doctor can only edit their own visits
         .single()
@@ -104,12 +112,18 @@ const DoctorEditVisitScreen: React.FC = () => {
     }
 
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid systolic blood pressure (50-300 mmHg)',
+      )
       return false
     }
 
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid diastolic blood pressure (30-200 mmHg)',
+      )
       return false
     }
 
@@ -124,17 +138,32 @@ const DoctorEditVisitScreen: React.FC = () => {
     }
 
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid blood sugar (20-800 mg/dL)',
+      )
       return false
     }
 
-    if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+    if (
+      oxygenSaturation &&
+      (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid oxygen saturation (50-100%)',
+      )
       return false
     }
 
-    if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+    if (
+      respiratoryRate &&
+      (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid respiratory rate (5-60 breaths/min)',
+      )
       return false
     }
 
@@ -176,7 +205,6 @@ const DoctorEditVisitScreen: React.FC = () => {
       } else {
         showToast.success('Success', 'Visit updated successfully')
         router.back()
-          
       }
     } catch (error) {
       showToast.error('Error', 'An unexpected error occurred')
@@ -233,9 +261,7 @@ const DoctorEditVisitScreen: React.FC = () => {
               <MaterialIcons name="edit" size={28} color="#4CAF50" />
               <View style={styles.headerText}>
                 <Text style={styles.headerTitle}>Edit Visit Record</Text>
-                <Text style={styles.headerSubtitle}>
-                  {formatDate(visit.visit_date)}
-                </Text>
+                <Text style={styles.headerSubtitle}>{formatDate(visit.visit_date)}</Text>
               </View>
             </View>
           </Card.Content>
@@ -257,9 +283,7 @@ const DoctorEditVisitScreen: React.FC = () => {
                   </Text>
                 )}
                 {patient.allergies && (
-                  <Text style={styles.allergies}>
-                    Allergies: {patient.allergies}
-                  </Text>
+                  <Text style={styles.allergies}>Allergies: {patient.allergies}</Text>
                 )}
                 {patient.current_medications && (
                   <Text style={styles.medications}>
@@ -275,7 +299,7 @@ const DoctorEditVisitScreen: React.FC = () => {
         <Card style={styles.sectionCard}>
           <Card.Content>
             <Text style={styles.sectionTitle}>Vital Signs</Text>
-            
+
             <View style={styles.inputRow}>
               <TextInput
                 label="Weight (kg)"
@@ -367,7 +391,7 @@ const DoctorEditVisitScreen: React.FC = () => {
         <Card style={styles.sectionCard}>
           <Card.Content>
             <Text style={styles.sectionTitle}>Visit Information</Text>
-            
+
             <TextInput
               label="Symptoms *"
               value={symptoms}
@@ -454,8 +478,9 @@ const DoctorEditVisitScreen: React.FC = () => {
             <View style={styles.infoContent}>
               <MaterialIcons name="info-outline" size={20} color="#4CAF50" />
               <Text style={styles.infoText}>
-                You can edit all visit details including vital signs, diagnosis, and treatment notes. 
-                Changes will be saved with a timestamp for audit purposes.
+                You can edit all visit details including vital signs, diagnosis, and
+                treatment notes. Changes will be saved with a timestamp for audit
+                purposes.
               </Text>
             </View>
           </Card.Content>
@@ -602,4 +627,3 @@ const styles = StyleSheet.create({
 })
 
 export default DoctorEditVisitScreen
-

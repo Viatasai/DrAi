@@ -8,169 +8,193 @@ import { MaterialIcons } from '@expo/vector-icons'
 export const toastConfig: ToastConfig = {
   success: (props) => {
     return (
-      <View style={{
-      height: 80,
-      width: '90%',
-      backgroundColor: '#e6f4e9',
-      borderRadius: 12,
-      borderLeftColor: '#218838',
-      borderLeftWidth:4,
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    }}>
-      <MaterialIcons name="check-circle" size={24} color="#218838" />
-      <View style={{ marginLeft: 12, flex: 1 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: '600',
-          color: 'black',
-        }}>
-          {props.text1}
-        </Text>
-        {props.text2 && (
-          <Text style={{
-            fontSize: 14,
-            color: 'black',
-            opacity: 0.9,
-            marginTop: 2,
-          }}>
-            {props.text2}
+      <View
+        style={{
+          height: 80,
+          width: '90%',
+          backgroundColor: '#e6f4e9',
+          borderRadius: 12,
+          borderLeftColor: '#218838',
+          borderLeftWidth: 4,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <MaterialIcons name="check-circle" size={24} color="#218838" />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: 'black',
+            }}
+          >
+            {props.text1}
           </Text>
-        )}
+          {props.text2 && (
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'black',
+                opacity: 0.9,
+                marginTop: 2,
+              }}
+            >
+              {props.text2}
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
     )
   },
-  
+
   error: (props) => {
     return (
-      <View style={{
-      height: 80,
-      width: '90%',
-      backgroundColor: '#fdecea',
-      borderLeftColor: '#c82333',
-      borderRadius: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-      borderLeftWidth:4,
-      paddingHorizontal: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    }}>
-      <MaterialIcons name="error" size={24} color="#c82333" />
-      <View style={{ marginLeft: 12, flex: 1 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: '600',
-          color: 'black',
-        }}>
-          {props.text1}
-        </Text>
-        {props.text2 && (
-          <Text style={{
-            fontSize: 14,
-            color: 'black',
-            opacity: 0.9,
-            marginTop: 2,
-          }}>
-            {props.text2}
+      <View
+        style={{
+          height: 80,
+          width: '90%',
+          backgroundColor: '#fdecea',
+          borderLeftColor: '#c82333',
+          borderRadius: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderLeftWidth: 4,
+          paddingHorizontal: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <MaterialIcons name="error" size={24} color="#c82333" />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: 'black',
+            }}
+          >
+            {props.text1}
           </Text>
-        )}
+          {props.text2 && (
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'black',
+                opacity: 0.9,
+                marginTop: 2,
+              }}
+            >
+              {props.text2}
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
     )
   },
-  
+
   info: (props) => {
     return (
-      <View style={{
-      height: 80,
-      width: '90%',
-      borderLeftColor: '#0447a8',
-      backgroundColor: '#DFF3FF',
-      borderRadius: 12,
-      flexDirection: 'row',
-      borderLeftWidth:4,
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    }}>
-      <MaterialIcons name="info" size={24} color="#0447a8" />
-      <View style={{ marginLeft: 12, flex: 1 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: '600',
-          color: 'black',
-        }}>
-          {props.text1}
-        </Text>
-        {props.text2 && (
-          <Text style={{
-            fontSize: 14,
-            color: 'black',
-            opacity: 0.9,
-            marginTop: 2,
-          }}>
-            {props.text2}
+      <View
+        style={{
+          height: 80,
+          width: '90%',
+          borderLeftColor: '#0447a8',
+          backgroundColor: '#DFF3FF',
+          borderRadius: 12,
+          flexDirection: 'row',
+          borderLeftWidth: 4,
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <MaterialIcons name="info" size={24} color="#0447a8" />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: 'black',
+            }}
+          >
+            {props.text1}
           </Text>
-        )}
+          {props.text2 && (
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'black',
+                opacity: 0.9,
+                marginTop: 2,
+              }}
+            >
+              {props.text2}
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
     )
   },
-  
+
   warning: (props) => {
     return (
-      <View style={{
-      height: 80,
-      width: '90%',
-      borderLeftColor: '#e0a800',
-      backgroundColor: '#fff7e6',
-      borderRadius: 12,
-      flexDirection: 'row',
-      borderLeftWidth:4,
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    }}>
-      <MaterialIcons name="warning" size={24} color="#e0a800" />
-      <View style={{ marginLeft: 12, flex: 1 }}>
-        <Text style={{
-          fontSize: 16,
-          fontWeight: '600',
-          color: 'black',
-        }}>
-          {props.text1}
-        </Text>
-        {props.text2 && (
-          <Text style={{
-            fontSize: 14,
-            color: 'black',
-            opacity: 0.9,
-            marginTop: 2,
-          }}>
-            {props.text2}
+      <View
+        style={{
+          height: 80,
+          width: '90%',
+          borderLeftColor: '#e0a800',
+          backgroundColor: '#fff7e6',
+          borderRadius: 12,
+          flexDirection: 'row',
+          borderLeftWidth: 4,
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <MaterialIcons name="warning" size={24} color="#e0a800" />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: '600',
+              color: 'black',
+            }}
+          >
+            {props.text1}
           </Text>
-        )}
+          {props.text2 && (
+            <Text
+              style={{
+                fontSize: 14,
+                color: 'black',
+                opacity: 0.9,
+                marginTop: 2,
+              }}
+            >
+              {props.text2}
+            </Text>
+          )}
+        </View>
       </View>
-    </View>
     )
   },
 }
@@ -189,7 +213,7 @@ export const showToast = {
       onHide,
     })
   },
-  
+
   error: (message: string, title: string = 'Error', onHide?: () => void) => {
     Toast.show({
       type: 'error',
@@ -202,7 +226,7 @@ export const showToast = {
       onHide,
     })
   },
-  
+
   info: (message: string, title: string = 'Info', onHide?: () => void) => {
     Toast.show({
       type: 'info',
@@ -215,7 +239,7 @@ export const showToast = {
       onHide,
     })
   },
-  
+
   warning: (message: string, title: string = 'Warning', onHide?: () => void) => {
     Toast.show({
       type: 'warning',
@@ -228,32 +252,34 @@ export const showToast = {
       onHide,
     })
   },
-  
+
   // Custom quick methods for common use cases
   validationError: (message: string) => {
     showToast.error(message, 'Validation Error')
   },
-  
-  networkError: (message: string = 'Please check your internet connection and try again') => {
+
+  networkError: (
+    message: string = 'Please check your internet connection and try again',
+  ) => {
     showToast.error(message, 'Network Error')
   },
-  
+
   authError: (message: string = 'Authentication failed') => {
     showToast.error(message, 'Authentication Error')
   },
-  
+
   saveSuccess: (itemName: string = 'Data') => {
     showToast.success(`${itemName} saved successfully`)
   },
-  
+
   deleteSuccess: (itemName: string = 'Item') => {
     showToast.success(`${itemName} deleted successfully`)
   },
-  
+
   updateSuccess: (itemName: string = 'Data') => {
     showToast.success(`${itemName} updated successfully`)
   },
-  
+
   comingSoon: () => {
     showToast.info('This feature is coming soon!')
   },

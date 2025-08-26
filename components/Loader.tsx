@@ -5,10 +5,7 @@ export default function Loader({ isOpen }: { isOpen: boolean }) {
   return (
     <Modal visible={isOpen} animationType="fade" transparent={true}>
       <View style={styles.container}>
-        <Image
-          source={require(`assets/favicon.png`)}
-          style={styles.image}
-        />
+        <Image source={require(`assets/favicon.png`)} style={styles.image} />
       </View>
     </Modal>
   );

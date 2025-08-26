@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native'
 import { Text, Button, ActivityIndicator, FAB } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
@@ -56,12 +62,13 @@ const PatientSearchScreen: React.FC = () => {
 
     setSearching(true)
     const query = searchQuery.toLowerCase()
-    const filtered = patients.filter(patient =>
-      patient.name.toLowerCase().includes(query) ||
-      patient.email?.toLowerCase().includes(query) ||
-      (patient.phone && patient.phone.includes(query)) ||
-      patient.age.toString().includes(query) ||
-      patient.gender.toLowerCase().includes(query)
+    const filtered = patients.filter(
+      (patient) =>
+        patient.name.toLowerCase().includes(query) ||
+        patient.email?.toLowerCase().includes(query) ||
+        (patient.phone && patient.phone.includes(query)) ||
+        patient.age.toString().includes(query) ||
+        patient.gender.toLowerCase().includes(query),
     )
     setFilteredPatients(filtered)
     setSearching(false)
@@ -78,19 +85,18 @@ const PatientSearchScreen: React.FC = () => {
   }
 
   // NEW: direct navigations to patient screens
- const goTrends = (patient: Patient) => {
-  const p = encodeURIComponent(JSON.stringify(patient))
-  router.push(`/doctor/patient-details?patient=${p}&view=trends`)
-}
-const goHistory = (patient: Patient) => {
-  const p = encodeURIComponent(JSON.stringify(patient))
-  router.push(`/doctor/patient-details?patient=${p}&view=history`)
-}
-const goProfile = (patient: Patient) => {
-  const p = encodeURIComponent(JSON.stringify(patient))
-  router.push(`/doctor/patient-details?patient=${p}&view=profile`)
-}
-
+  const goTrends = (patient: Patient) => {
+    const p = encodeURIComponent(JSON.stringify(patient))
+    router.push(`/doctor/patient-details?patient=${p}&view=trends`)
+  }
+  const goHistory = (patient: Patient) => {
+    const p = encodeURIComponent(JSON.stringify(patient))
+    router.push(`/doctor/patient-details?patient=${p}&view=history`)
+  }
+  const goProfile = (patient: Patient) => {
+    const p = encodeURIComponent(JSON.stringify(patient))
+    router.push(`/doctor/patient-details?patient=${p}&view=profile`)
+  }
 
   const handleCreatePatient = () => {
     // Reuse auth/signup screen for creating a patient on behalf of doctor
@@ -99,17 +105,23 @@ const goProfile = (patient: Patient) => {
 
   const getGenderIcon = (gender: string) => {
     switch (gender.toLowerCase()) {
-      case 'male': return 'male'
-      case 'female': return 'female'
-      default: return 'person'
+      case 'male':
+        return 'male'
+      case 'female':
+        return 'female'
+      default:
+        return 'person'
     }
   }
 
   const getGenderColor = (gender: string) => {
     switch (gender.toLowerCase()) {
-      case 'male': return '#4285F4'
-      case 'female': return '#E91E63'
-      default: return '#666666'
+      case 'male':
+        return '#4285F4'
+      case 'female':
+        return '#E91E63'
+      default:
+        return '#666666'
     }
   }
 
@@ -127,10 +139,7 @@ const goProfile = (patient: Patient) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={20} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>Search Patients</Text>
@@ -144,11 +153,19 @@ const goProfile = (patient: Patient) => {
           onChangeText={setSearchQuery}
           placeholder="Name, email, phone, age, or gender"
           left={
-            <MaterialIcons name="search" size={20} color="#666666" style={{ marginLeft: 12 }} />
+            <MaterialIcons
+              name="search"
+              size={20}
+              color="#666666"
+              style={{ marginLeft: 12 }}
+            />
           }
           right={
             searchQuery ? (
-              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearButton}
+              >
                 <MaterialIcons name="close" size={20} color="#666666" />
               </TouchableOpacity>
             ) : undefined
@@ -159,9 +176,7 @@ const goProfile = (patient: Patient) => {
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
         {searching && (
@@ -174,17 +189,18 @@ const goProfile = (patient: Patient) => {
         {filteredPatients.length > 0 ? (
           <>
             <Text style={styles.resultsCount}>
-              {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''} found
+              {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''}{' '}
+              found
             </Text>
-            
+
             {filteredPatients.map((patient) => (
               <View key={patient.id} style={styles.patientCard}>
                 {/* Patient Header */}
                 <View style={styles.patientHeader}>
                   <View style={styles.patientIconContainer}>
-                    <MaterialIcons 
-                      name={getGenderIcon(patient.gender)} 
-                      size={24} 
+                    <MaterialIcons
+                      name={getGenderIcon(patient.gender)}
+                      size={24}
                       color={getGenderColor(patient.gender)}
                     />
                   </View>
@@ -201,7 +217,9 @@ const goProfile = (patient: Patient) => {
                 </View>
 
                 {/* Medical Information */}
-                {(patient.medical_history || patient.allergies || patient.current_medications) && (
+                {(patient.medical_history ||
+                  patient.allergies ||
+                  patient.current_medications) && (
                   <View style={styles.medicalSection}>
                     {patient.allergies && (
                       <View style={styles.allergyBadge}>
@@ -211,7 +229,7 @@ const goProfile = (patient: Patient) => {
                         </Text>
                       </View>
                     )}
-                    
+
                     {patient.current_medications && (
                       <View style={styles.medicationInfo}>
                         <MaterialIcons name="medication" size={16} color="#4CAF50" />
@@ -220,7 +238,7 @@ const goProfile = (patient: Patient) => {
                         </Text>
                       </View>
                     )}
-                    
+
                     {patient.medical_history && (
                       <View style={styles.historyInfo}>
                         <MaterialIcons name="history" size={16} color="#666666" />
@@ -238,7 +256,8 @@ const goProfile = (patient: Patient) => {
                     <MaterialIcons name="contact-emergency" size={16} color="#FF9800" />
                     <Text style={styles.emergencyText} numberOfLines={1}>
                       Emergency: {patient.emergency_contact_name}
-                      {patient.emergency_contact_phone && ` (${patient.emergency_contact_phone})`}
+                      {patient.emergency_contact_phone &&
+                        ` (${patient.emergency_contact_phone})`}
                     </Text>
                   </View>
                 )}
@@ -251,7 +270,9 @@ const goProfile = (patient: Patient) => {
                     style={styles.diagnosisButton}
                     contentStyle={styles.buttonContent}
                     buttonColor="#4285F4"
-                    icon={() => <MaterialIcons name="medical-services" size={18} color="#FFFFFF" />}
+                    icon={() => (
+                      <MaterialIcons name="medical-services" size={18} color="#FFFFFF" />
+                    )}
                   >
                     Start Diagnosis
                   </Button>
@@ -265,7 +286,9 @@ const goProfile = (patient: Patient) => {
                     style={[styles.secondaryButton, styles.trendsButton]}
                     contentStyle={styles.secondaryButtonContent}
                     textColor="#4285F4"
-                    icon={() => <MaterialIcons name="trending-up" size={18} color="#4285F4" />}
+                    icon={() => (
+                      <MaterialIcons name="trending-up" size={18} color="#4285F4" />
+                    )}
                   >
                     Trends
                   </Button>
@@ -276,7 +299,9 @@ const goProfile = (patient: Patient) => {
                     style={[styles.secondaryButton, styles.historyButton]}
                     contentStyle={styles.secondaryButtonContent}
                     textColor="#4285F4"
-                    icon={() => <MaterialIcons name="history" size={18} color="#4285F4" />}
+                    icon={() => (
+                      <MaterialIcons name="history" size={18} color="#4285F4" />
+                    )}
                   >
                     History
                   </Button>
@@ -320,7 +345,8 @@ const goProfile = (patient: Patient) => {
             </View>
             <Text style={styles.emptyTitle}>No patients available</Text>
             <Text style={styles.emptyText}>
-              No patients are registered in the system yet. Create a new patient to get started.
+              No patients are registered in the system yet. Create a new patient to get
+              started.
             </Text>
             <Button
               mode="contained"
@@ -343,7 +369,17 @@ const goProfile = (patient: Patient) => {
         customSize={56}
         color="#FFFFFF"
         icon={() => (
-          <Text style={{ fontSize: 28, marginLeft: 5, marginTop: -5, fontWeight: 'bold', color: '#FFFFFF' }}>+</Text>
+          <Text
+            style={{
+              fontSize: 28,
+              marginLeft: 5,
+              marginTop: -5,
+              fontWeight: 'bold',
+              color: '#FFFFFF',
+            }}
+          >
+            +
+          </Text>
         )}
       />
     </SafeAreaView>
