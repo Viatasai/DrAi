@@ -19,11 +19,17 @@ const PatientProfileScreen: React.FC = () => {
   // Editable fields
   const [phone, setPhone] = useState(patient?.phone || '')
   const [address, setAddress] = useState(patient?.address || '')
-  const [emergencyContactName, setEmergencyContactName] = useState(patient?.emergency_contact_name || '')
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState(patient?.emergency_contact_phone || '')
+  const [emergencyContactName, setEmergencyContactName] = useState(
+    patient?.emergency_contact_name || '',
+  )
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState(
+    patient?.emergency_contact_phone || '',
+  )
   const [medicalHistory, setMedicalHistory] = useState(patient?.medical_history || '')
   const [allergies, setAllergies] = useState(patient?.allergies || '')
-  const [currentMedications, setCurrentMedications] = useState(patient?.current_medications || '')
+  const [currentMedications, setCurrentMedications] = useState(
+    patient?.current_medications || '',
+  )
 
   const handleSave = async () => {
     if (!patient) return
@@ -90,10 +96,7 @@ const PatientProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>My Profile</Text>

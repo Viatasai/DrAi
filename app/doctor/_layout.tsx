@@ -6,10 +6,10 @@ import { useAuth } from '../../contexts/AuthContext'
 export default function DoctorLayout() {
   const { user, userRole, loading } = useAuth()
 
-  // console.log('Doctor layout - auth state:', { 
-  //   hasUser: !!user, 
-  //   role: userRole?.role, 
-  //   loading 
+  // console.log('Doctor layout - auth state:', {
+  //   hasUser: !!user,
+  //   role: userRole?.role,
+  //   loading
   // })
 
   // Only redirect if auth is fully loaded and user is not a doctor
@@ -76,7 +76,6 @@ export default function DoctorLayout() {
         name="visit-form"
         options={{
           href: null, // Hide from tab bar
-          
         }}
       />
       <Tabs.Screen
@@ -100,7 +99,7 @@ export default function DoctorLayout() {
           href: null, // Hide from tab bar
         }}
       />
-       <Tabs.Screen
+      <Tabs.Screen
         name="patient-details"
         options={{
           href: null, // Hide from tab bar

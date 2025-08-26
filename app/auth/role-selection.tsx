@@ -19,13 +19,13 @@ const RoleSelectionScreen: React.FC = () => {
       id: 'patient',
       title: 'Patient',
       description: 'View your medical history, track visits, and chat with AI assistant',
-      icon: 'person'
+      icon: 'person',
     },
     {
       id: 'field_doctor',
       title: 'Field Doctor',
       description: 'Record patient visits, enter vital signs, and manage patient care',
-      icon: 'medical-services'
+      icon: 'medical-services',
     },
     // {
     //   id: 'admin',
@@ -37,7 +37,7 @@ const RoleSelectionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -46,9 +46,7 @@ const RoleSelectionScreen: React.FC = () => {
             <MaterialIcons name="local-hospital" size={48} color="#4285F4" />
           </View>
           <Text style={styles.titleText}>Welcome to DrAi</Text>
-          <Text style={styles.subText}>
-            Choose your role to get started
-          </Text>
+          <Text style={styles.subText}>Choose your role to get started</Text>
         </View>
 
         <View style={styles.rolesContainer}>
@@ -60,21 +58,13 @@ const RoleSelectionScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.roleIcon}>
-                <MaterialIcons 
-                  name={role.icon as any} 
-                  size={32} 
-                  color="#4285F4" 
-                />
+                <MaterialIcons name={role.icon as any} size={32} color="#4285F4" />
               </View>
               <View style={styles.roleContent}>
                 <Text style={styles.roleTitle}>{role.title}</Text>
                 <Text style={styles.roleDescription}>{role.description}</Text>
               </View>
-              <MaterialIcons 
-                name="arrow-forward-ios" 
-                size={20} 
-                color="#CCCCCC" 
-              />
+              <MaterialIcons name="arrow-forward-ios" size={20} color="#CCCCCC" />
             </TouchableOpacity>
           ))}
         </View>
@@ -83,9 +73,9 @@ const RoleSelectionScreen: React.FC = () => {
 
         <View style={styles.loginSection}>
           <Text style={styles.loginText}>Already have an account?</Text>
-          <Button 
-            mode="text" 
-            onPress={handleLogin} 
+          <Button
+            mode="text"
+            onPress={handleLogin}
             style={styles.loginButton}
             textColor="#4285F4"
           >

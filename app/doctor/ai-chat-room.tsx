@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, TouchableOpacity } from 'react-native'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  TouchableOpacity,
+} from 'react-native'
 import { Text, Button, ActivityIndicator } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
@@ -24,8 +32,8 @@ interface VitalData {
   patient_name?: string
   patient_age?: number
   patient_gender?: string
-  patient_id?: string;
-  visit_id?: string;
+  patient_id?: string
+  visit_id?: string
 }
 
 interface ChatBubbleProps {
@@ -42,7 +50,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser }) => {
   }
 
   return (
-    <View style={[styles.messageContainer, isUser ? styles.userMessage : styles.aiMessage]}>
+    <View
+      style={[styles.messageContainer, isUser ? styles.userMessage : styles.aiMessage]}
+    >
       <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
           {message.message}
@@ -147,26 +157,29 @@ Please analyze this data and provide initial diagnostic insights, potential conc
       setMessages([contextChatMessage])
 
       // Send to AI
-      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          doctorId: doctor?.id,
-          patientId: vitals?.patient_id || null,
-          message: initialMessage,
-          conversationHistory: [],
-          sessionId: sessionId,
-          vitalData: vitals,
-          doctorProfile: {
-            name: doctor?.name,
-            specialization: doctor?.specialization,
-            yearsOfExperience: doctor?.years_of_experience,
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      })
+          body: JSON.stringify({
+            doctorId: doctor?.id,
+            patientId: vitals?.patient_id || null,
+            message: initialMessage,
+            conversationHistory: [],
+            sessionId: sessionId,
+            vitalData: vitals,
+            doctorProfile: {
+              name: doctor?.name,
+              specialization: doctor?.specialization,
+              yearsOfExperience: doctor?.years_of_experience,
+            },
+          }),
+        },
+      )
 
       if (!response.ok) {
         throw new Error('Failed to get AI response')
@@ -174,7 +187,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
       const data = await response.json()
       console.log('AI context response:', data)
-      
+
       if (data.success) {
         // Poll for the AI response with multiple attempts
         let attempts = 0
@@ -184,7 +197,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
         const pollForResponse = async () => {
           attempts++
           console.log(`Polling for AI response, attempt ${attempts}`)
-          
+
           try {
             const { data: chatData, error } = await supabase
               .from('chat_messages')
@@ -198,8 +211,8 @@ Please analyze this data and provide initial diagnostic insights, potential conc
             }
 
             // Check if we have AI response (more than just the context message)
-            const aiMessages = chatData?.filter(msg => msg.role === 'ai') || []
-            
+            const aiMessages = chatData?.filter((msg) => msg.role === 'ai') || []
+
             if (aiMessages.length > 0) {
               console.log('AI response found, updating messages')
               setMessages(chatData || [])
@@ -236,7 +249,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
         message: `Hello Dr. ${doctor?.name}! I've received the patient data. How can I assist with the diagnosis?`,
         timestamp: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, welcomeMessage])
+      setMessages((prev) => [...prev, welcomeMessage])
       setLoading(false)
     }
   }
@@ -270,40 +283,43 @@ Please analyze this data and provide initial diagnostic insights, potential conc
       return "No vital data provided. Please share the patient's symptoms and vital signs for accurate diagnosis."
     }
 
-    let context = "**Patient Information:**\n"
-    
+    let context = '**Patient Information:**\n'
+
     if (vitals.patient_name) context += `• Name: ${vitals.patient_name}\n`
     if (vitals.patient_age) context += `• Age: ${vitals.patient_age} years\n`
     if (vitals.patient_gender) context += `• Gender: ${vitals.patient_gender}\n`
-    
-    context += "\n**Vital Signs:**\n"
-    
+
+    context += '\n**Vital Signs:**\n'
+
     if (vitals.weight) context += `• Weight: ${vitals.weight} kg\n`
     if (vitals.height) context += `• Height: ${vitals.height} cm\n`
     if (vitals.systolic_bp && vitals.diastolic_bp) {
-      const bpStatus = vitals.systolic_bp > 140 || vitals.diastolic_bp > 90 ? " ⚠️ HIGH" : ""
+      const bpStatus =
+        vitals.systolic_bp > 140 || vitals.diastolic_bp > 90 ? ' ⚠️ HIGH' : ''
       context += `• Blood Pressure: ${vitals.systolic_bp}/${vitals.diastolic_bp} mmHg${bpStatus}\n`
     }
     if (vitals.heart_rate) {
-      const hrStatus = vitals.heart_rate > 100 ? " ⚠️ HIGH" : vitals.heart_rate < 60 ? " ⚠️ LOW" : ""
+      const hrStatus =
+        vitals.heart_rate > 100 ? ' ⚠️ HIGH' : vitals.heart_rate < 60 ? ' ⚠️ LOW' : ''
       context += `• Heart Rate: ${vitals.heart_rate} bpm${hrStatus}\n`
     }
     if (vitals.temperature) {
-      const tempStatus = vitals.temperature > 37.5 ? " ⚠️ FEVER" : ""
+      const tempStatus = vitals.temperature > 37.5 ? ' ⚠️ FEVER' : ''
       context += `• Temperature: ${vitals.temperature}°C${tempStatus}\n`
     }
     if (vitals.blood_sugar) {
-      const bsStatus = vitals.blood_sugar > 180 ? " ⚠️ HIGH" : vitals.blood_sugar < 70 ? " ⚠️ LOW" : ""
+      const bsStatus =
+        vitals.blood_sugar > 180 ? ' ⚠️ HIGH' : vitals.blood_sugar < 70 ? ' ⚠️ LOW' : ''
       context += `• Blood Sugar: ${vitals.blood_sugar} mg/dL${bsStatus}\n`
     }
     if (vitals.oxygen_saturation) {
-      const o2Status = vitals.oxygen_saturation < 95 ? " ⚠️ LOW" : ""
+      const o2Status = vitals.oxygen_saturation < 95 ? ' ⚠️ LOW' : ''
       context += `• Oxygen Saturation: ${vitals.oxygen_saturation}%${o2Status}\n`
     }
     if (vitals.respiratory_rate) {
       context += `• Respiratory Rate: ${vitals.respiratory_rate} breaths/min\n`
     }
-    
+
     if (vitals.symptoms) {
       context += `\n**Reported Symptoms:**\n${vitals.symptoms}\n`
     }
@@ -338,10 +354,10 @@ Please analyze this data and provide initial diagnostic insights, potential conc
         message: userMessage,
         timestamp: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, tempUserMessage])
+      setMessages((prev) => [...prev, tempUserMessage])
 
       // Get conversation history for context
-      const conversationHistory = messages.map(msg => ({
+      const conversationHistory = messages.map((msg) => ({
         role: msg.role,
         message: msg.message,
         timestamp: msg.timestamp,
@@ -349,27 +365,30 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
       // Call AI chat function with doctor and patient context
       console.log('Sending doctor message with session ID:', currentSessionId)
-      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          doctorId: doctor.id,
-          patientId: vitalData?.patient_id || null,
-          message: userMessage,
-          conversationHistory,
-          sessionId: currentSessionId,
-          vitalData: vitalData,
-          visitId: vitalData?.visit_id || null,
-          doctorProfile: {
-            name: doctor.name,
-            specialization: doctor.specialization,
-            yearsOfExperience: doctor.years_of_experience,
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      })
+          body: JSON.stringify({
+            doctorId: doctor.id,
+            patientId: vitalData?.patient_id || null,
+            message: userMessage,
+            conversationHistory,
+            sessionId: currentSessionId,
+            vitalData: vitalData,
+            visitId: vitalData?.visit_id || null,
+            doctorProfile: {
+              name: doctor.name,
+              specialization: doctor.specialization,
+              yearsOfExperience: doctor.years_of_experience,
+            },
+          }),
+        },
+      )
 
       if (!response.ok) {
         throw new Error('Failed to get AI response')
@@ -377,7 +396,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
       const data = await response.json()
       console.log('Doctor AI response:', data)
-      
+
       if (data.success) {
         // Poll for the AI response with multiple attempts
         let attempts = 0
@@ -387,7 +406,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
         const pollForResponse = async () => {
           attempts++
           console.log(`Polling for AI response, attempt ${attempts}`)
-          
+
           try {
             const { data: chatData, error } = await supabase
               .from('chat_messages')
@@ -402,11 +421,13 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
             // Find the latest AI message that's newer than our user message
             const latestMessages = chatData || []
-            const userMessageIndex = latestMessages.findIndex(msg => msg.message === userMessage && msg.role === 'user')
-            const hasNewAiResponse = latestMessages.some((msg, index) => 
-              msg.role === 'ai' && index > userMessageIndex
+            const userMessageIndex = latestMessages.findIndex(
+              (msg) => msg.message === userMessage && msg.role === 'user',
             )
-            
+            const hasNewAiResponse = latestMessages.some(
+              (msg, index) => msg.role === 'ai' && index > userMessageIndex,
+            )
+
             if (hasNewAiResponse) {
               console.log('New AI response found, updating messages')
               setMessages(latestMessages)
@@ -434,10 +455,10 @@ Please analyze this data and provide initial diagnostic insights, potential conc
       }
     } catch (error) {
       console.error('Error sending doctor message:', error)
-      showToast.error(  'Failed to send message. Please try again.')
+      showToast.error('Failed to send message. Please try again.')
 
       // Remove the temporary user message on error
-      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')))
+      setMessages((prev) => prev.filter((msg) => !msg.id.startsWith('temp-')))
       setLoading(false)
     }
   }
@@ -460,28 +481,28 @@ Please analyze this data and provide initial diagnostic insights, potential conc
     if (!vitalData) return null
 
     const vitals = []
-    
+
     if (vitalData.systolic_bp && vitalData.diastolic_bp) {
       const isHigh = vitalData.systolic_bp > 140 || vitalData.diastolic_bp > 90
       vitals.push({
         label: `BP: ${vitalData.systolic_bp}/${vitalData.diastolic_bp}`,
-        alert: isHigh
+        alert: isHigh,
       })
     }
-    
+
     if (vitalData.temperature) {
       const isHigh = vitalData.temperature > 37.5
       vitals.push({
         label: `Temp: ${vitalData.temperature}°C`,
-        alert: isHigh
+        alert: isHigh,
       })
     }
-    
+
     if (vitalData.heart_rate) {
       const isAbnormal = vitalData.heart_rate > 100 || vitalData.heart_rate < 60
       vitals.push({
         label: `HR: ${vitalData.heart_rate}`,
-        alert: isAbnormal
+        alert: isAbnormal,
       })
     }
 
@@ -489,7 +510,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
       const isLow = vitalData.oxygen_saturation < 95
       vitals.push({
         label: `O₂: ${vitalData.oxygen_saturation}%`,
-        alert: isLow
+        alert: isLow,
       })
     }
 
@@ -503,13 +524,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
         </View>
         <View style={styles.vitalChips}>
           {vitals.map((vital, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.vitalChip,
-                vital.alert && styles.alertChip
-              ]}
-            >
+            <View key={idx} style={[styles.vitalChip, vital.alert && styles.alertChip]}>
               <Text style={[styles.vitalText, vital.alert && styles.alertText]}>
                 {vital.label}
               </Text>
@@ -522,10 +537,10 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
   const suggestedQuestions = [
     "What's the most likely diagnosis?",
-    "What tests should I order?",
-    "Any red flags to watch for?",
-    "Treatment recommendations?",
-    "Follow-up care needed?",
+    'What tests should I order?',
+    'Any red flags to watch for?',
+    'Treatment recommendations?',
+    'Follow-up care needed?',
   ]
 
   if (initialLoading) {
@@ -541,26 +556,20 @@ Please analyze this data and provide initial diagnostic insights, potential conc
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        style={styles.keyboardAvoidingView} 
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color="#333333" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <MaterialIcons name="psychology" size={24} color="#4285F4" />
             <Text style={styles.headerText}>AI Diagnostic Assistant</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.newSessionButton}
-            onPress={startNewSession}
-          >
+          <TouchableOpacity style={styles.newSessionButton} onPress={startNewSession}>
             <MaterialIcons name="add" size={24} color="#4285F4" />
           </TouchableOpacity>
         </View>
@@ -582,7 +591,8 @@ Please analyze this data and provide initial diagnostic insights, potential conc
               </View>
               <Text style={styles.welcomeText}>AI Diagnostic Assistant Ready</Text>
               <Text style={styles.welcomeSubText}>
-                I can help you analyze patient data, suggest diagnoses, recommend tests, and provide treatment insights.
+                I can help you analyze patient data, suggest diagnoses, recommend tests,
+                and provide treatment insights.
               </Text>
 
               <View style={styles.suggestedContainer}>
@@ -645,17 +655,19 @@ Please analyze this data and provide initial diagnostic insights, potential conc
               disabled={!inputText.trim() || loading}
               style={[
                 styles.sendButton,
-                (!inputText.trim() || loading) && styles.sendButtonDisabled
+                (!inputText.trim() || loading) && styles.sendButtonDisabled,
               ]}
             >
-              <MaterialIcons 
-                name="send" 
-                size={24} 
-                color={(!inputText.trim() || loading) ? "#CCCCCC" : "#FFFFFF"} 
+              <MaterialIcons
+                name="send"
+                size={24}
+                color={!inputText.trim() || loading ? '#CCCCCC' : '#FFFFFF'}
               />
             </TouchableOpacity>
           </View>
-          <Text style={styles.inputHint}>Press Enter to send • Shift+Enter for new line</Text>
+          <Text style={styles.inputHint}>
+            Press Enter to send • Shift+Enter for new line
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -911,10 +923,9 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     marginBottom: -25,
-    minHeight:60,
+    minHeight: 60,
     maxHeight: 120,
-    marginTop:10,
-   
+    marginTop: 10,
   },
   inputHint: {
     fontSize: 12,

@@ -26,17 +26,14 @@ const TrendsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>Health Trends</Text>
       </View>
 
-      <HealthTrendsComponent 
-        patientId={patient.id} 
+      <HealthTrendsComponent
+        patientId={patient.id}
         showHeader={false}
         containerStyle={styles.trendsContainer}
       />

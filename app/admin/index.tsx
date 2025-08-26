@@ -57,7 +57,11 @@ const AdminHomeScreen: React.FC = () => {
       // Get today's visits
       const today = new Date()
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
+      const endOfDay = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 1,
+      )
 
       const { count: todayVisitsCount, error: todayError } = await supabase
         .from('visits')
@@ -83,7 +87,14 @@ const AdminHomeScreen: React.FC = () => {
         .select('*', { count: 'exact', head: true })
         .gte('visit_date', startOfMonth.toISOString())
 
-      if (!patientsError && !doctorsError && !visitsError && !todayError && !weekError && !monthError) {
+      if (
+        !patientsError &&
+        !doctorsError &&
+        !visitsError &&
+        !todayError &&
+        !weekError &&
+        !monthError
+      ) {
         setStats({
           totalPatients: patientsCount || 0,
           totalDoctors: doctorsCount || 0,
@@ -110,9 +121,7 @@ const AdminHomeScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Welcome Section */}
         <Card style={styles.welcomeCard}>
@@ -121,9 +130,7 @@ const AdminHomeScreen: React.FC = () => {
               <MaterialIcons name="admin-panel-settings" size={32} color="#FF9800" />
               <View style={styles.welcomeTextContainer}>
                 <Text style={styles.welcomeText}>Welcome, {admin?.name}!</Text>
-                <Text style={styles.welcomeSubText}>
-                  System Administrator Dashboard
-                </Text>
+                <Text style={styles.welcomeSubText}>System Administrator Dashboard</Text>
               </View>
             </View>
           </Card.Content>
@@ -326,4 +333,3 @@ const styles = StyleSheet.create({
 })
 
 export default AdminHomeScreen
-

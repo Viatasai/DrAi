@@ -8,6 +8,22 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Patient } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
+import { getCurrentLocation } from '../../utils/location'
+
+/** Fallback reverse geocode if name isn't provided by getCurrentLocation() */
+async function reverseGeocodeName(lat: number, lon: number): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'DRAI/1.0 (+https://example.org)' },
+    })
+    const json = await res.json()
+    // prefer short, human-friendly name
+    return json?.name || json?.display_name || null
+  } catch {
+    return null
+  }
+}
 
 const AddVitalsScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -31,59 +47,81 @@ const AddVitalsScreen: React.FC = () => {
   const [observations, setObservations] = useState('')
 
   const validateForm = () => {
-    // Check if at least one vital sign or symptom is entered
-    const hasVitals = weight || height || systolicBp || diastolicBp || heartRate || 
-                     temperature || bloodSugar || oxygenSaturation || respiratoryRate
+    const hasVitals =
+      weight ||
+      height ||
+      systolicBp ||
+      diastolicBp ||
+      heartRate ||
+      temperature ||
+      bloodSugar ||
+      oxygenSaturation ||
+      respiratoryRate
     const hasSymptoms = symptoms.trim()
-    
+
     if (!hasVitals && !hasSymptoms) {
-      showToast.error('Validation Error', 'Please enter at least one vital sign or symptom')
+      showToast.error(
+        'Validation Error',
+        'Please enter at least one vital sign or symptom',
+      )
       return false
     }
 
-    // Validate vital signs ranges
     if (weight && (parseFloat(weight) < 1 || parseFloat(weight) > 500)) {
       showToast.error('Validation Error', 'Please enter a valid weight (1-500 kg)')
       return false
     }
-
     if (height && (parseFloat(height) < 30 || parseFloat(height) > 300)) {
       showToast.error('Validation Error', 'Please enter a valid height (30-300 cm)')
       return false
     }
-
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid systolic blood pressure (50-300 mmHg)',
+      )
       return false
     }
-
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid diastolic blood pressure (30-200 mmHg)',
+      )
       return false
     }
-
     if (heartRate && (parseInt(heartRate) < 30 || parseInt(heartRate) > 250)) {
       showToast.error('Validation Error', 'Please enter a valid heart rate (30-250 bpm)')
       return false
     }
-
     if (temperature && (parseFloat(temperature) < 30 || parseFloat(temperature) > 45)) {
       showToast.error('Validation Error', 'Please enter a valid temperature (30-45°C)')
       return false
     }
-
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid blood sugar (20-800 mg/dL)',
+      )
       return false
     }
-
-    if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+    if (
+      oxygenSaturation &&
+      (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid oxygen saturation (50-100%)',
+      )
       return false
     }
-
-    if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+    if (
+      respiratoryRate &&
+      (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid respiratory rate (5-60 breaths/min)',
+      )
       return false
     }
 
@@ -95,10 +133,19 @@ const AddVitalsScreen: React.FC = () => {
 
     setLoading(true)
     try {
-      // Prepare visit data as self-recorded entry
+      // 1) Get device location (lat/lon/accuracy/name?)
+      const loc = await getCurrentLocation()
+
+      // 2) If we have coords but no name, reverse-geocode a short label
+      let locName: string | null = loc?.name ?? null
+      if (!locName && loc?.lat && loc?.lon) {
+        locName = await reverseGeocodeName(loc.lat, loc.lon)
+      }
+
+      // 3) Prepare data (visit_date uses exact current timestamp)
       const visitData = {
         patient_id: patient?.id,
-        doctor_id: null, // Self-recorded entry
+        doctor_id: null,
         visit_date: new Date().toISOString(),
         visit_type: 'self_recorded',
         weight: weight ? parseFloat(weight) : null,
@@ -112,20 +159,24 @@ const AddVitalsScreen: React.FC = () => {
         respiratory_rate: respiratoryRate ? parseInt(respiratoryRate) : null,
         symptoms: symptoms.trim() || null,
         treatment_notes: observations.trim() || null,
+        location: loc
+          ? {
+              lat: loc.lat,
+              lon: loc.lon,
+              accuracy: loc.accuracy ?? null,
+              name: locName ?? null,
+            }
+          : null,
       }
 
-      const { error } = await supabase
-        .from('visits')
-        .insert(visitData)
+      const { error } = await supabase.from('visits').insert(visitData)
 
       if (error) {
         showToast.error('Error', 'Failed to save vitals entry')
         console.error('Error saving vitals:', error)
       } else {
         showToast.error('Success', 'Vitals entry saved successfully')
-        
-       router.back()
-        
+        router.back()
       }
     } catch (error) {
       showToast.error('Error', 'An unexpected error occurred')
@@ -138,25 +189,22 @@ const AddVitalsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>Add Vitals Entry</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Vital Signs Section */}
+        {/* Vital Signs */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Vital Signs</Text>
           <Text style={styles.sectionSubtitle}>Enter any measurements you have</Text>
-          
+
           <View style={styles.inputRow}>
             <CleanTextInput
               label="Weight (kg)"
@@ -242,11 +290,10 @@ const AddVitalsScreen: React.FC = () => {
           />
         </View>
 
-        {/* Symptoms Section */}
+        {/* Symptoms */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Symptoms</Text>
           <Text style={styles.sectionSubtitle}>Describe how you're feeling today</Text>
-          
           <CleanTextInput
             label="Current Symptoms"
             value={symptoms}
@@ -257,11 +304,12 @@ const AddVitalsScreen: React.FC = () => {
           />
         </View>
 
-        {/* Observations Section */}
+        {/* Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes & Observations</Text>
-          <Text style={styles.sectionSubtitle}>Any additional notes about your health</Text>
-          
+          <Text style={styles.sectionSubtitle}>
+            Any additional notes about your health
+          </Text>
           <CleanTextInput
             label="Additional Notes"
             value={observations}
@@ -272,7 +320,7 @@ const AddVitalsScreen: React.FC = () => {
           />
         </View>
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <View style={styles.actionButtons}>
           <Button
             mode="contained"

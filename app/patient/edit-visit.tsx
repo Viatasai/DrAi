@@ -66,9 +66,19 @@ const EditVisitScreen: React.FC = () => {
 
   const validateForm = () => {
     // Check if at least one field has content
-    const hasContent = weight || height || systolicBp || diastolicBp || heartRate ||
-      temperature || bloodSugar || oxygenSaturation || respiratoryRate ||
-      symptoms.trim() || diagnosis.trim() || treatmentNotes.trim()
+    const hasContent =
+      weight ||
+      height ||
+      systolicBp ||
+      diastolicBp ||
+      heartRate ||
+      temperature ||
+      bloodSugar ||
+      oxygenSaturation ||
+      respiratoryRate ||
+      symptoms.trim() ||
+      diagnosis.trim() ||
+      treatmentNotes.trim()
 
     if (!hasContent) {
       showToast.error('Validation Error', 'Please enter at least some information')
@@ -87,12 +97,18 @@ const EditVisitScreen: React.FC = () => {
     }
 
     if (systolicBp && (parseInt(systolicBp) < 50 || parseInt(systolicBp) > 300)) {
-      showToast.error('Validation Error', 'Please enter a valid systolic blood pressure (50-300 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid systolic blood pressure (50-300 mmHg)',
+      )
       return false
     }
 
     if (diastolicBp && (parseInt(diastolicBp) < 30 || parseInt(diastolicBp) > 200)) {
-      showToast.error('Validation Error', 'Please enter a valid diastolic blood pressure (30-200 mmHg)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid diastolic blood pressure (30-200 mmHg)',
+      )
       return false
     }
 
@@ -107,17 +123,32 @@ const EditVisitScreen: React.FC = () => {
     }
 
     if (bloodSugar && (parseFloat(bloodSugar) < 20 || parseFloat(bloodSugar) > 800)) {
-      showToast.error('Validation Error', 'Please enter a valid blood sugar (20-800 mg/dL)')
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid blood sugar (20-800 mg/dL)',
+      )
       return false
     }
 
-    if (oxygenSaturation && (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)) {
-      showToast.error('Validation Error', 'Please enter a valid oxygen saturation (50-100%)')
+    if (
+      oxygenSaturation &&
+      (parseInt(oxygenSaturation) < 50 || parseInt(oxygenSaturation) > 100)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid oxygen saturation (50-100%)',
+      )
       return false
     }
 
-    if (respiratoryRate && (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)) {
-      showToast.error('Validation Error', 'Please enter a valid respiratory rate (5-60 breaths/min)')
+    if (
+      respiratoryRate &&
+      (parseInt(respiratoryRate) < 5 || parseInt(respiratoryRate) > 60)
+    ) {
+      showToast.error(
+        'Validation Error',
+        'Please enter a valid respiratory rate (5-60 breaths/min)',
+      )
       return false
     }
 
@@ -160,7 +191,6 @@ const EditVisitScreen: React.FC = () => {
         showToast.success('Success', 'Visit record updated successfully')
 
         router.back()
-
       }
     } catch (error) {
       showToast.error('Error', 'An unexpected error occurred')
@@ -191,10 +221,7 @@ const EditVisitScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <View style={styles.headerContent}>

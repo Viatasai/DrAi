@@ -1,36 +1,40 @@
-import React from 'react'
-import { View, StyleSheet, KeyboardTypeOptions, TextInputProps } from 'react-native'
-import { TextInput, Text } from 'react-native-paper'
+import React from "react";
+import {
+  View,
+  StyleSheet,
+  KeyboardTypeOptions,
+  TextInputProps,
+} from "react-native";
+import { TextInput, Text } from "react-native-paper";
 
 interface CleanTextInputProps {
-    label: string
-    value: string
-    onChangeText: (text: string) => void
-    secureTextEntry?: boolean
-    keyboardType?: KeyboardTypeOptions
-    placeholder?: string
-    multiline?: boolean
-    numberOfLines?: number
-    autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'
-    autoComplete?: TextInputProps['autoComplete']
-    left?: React.ReactNode
-    right?: React.ReactNode
-    style?: any
-    [key: string]: any // For any additional props
-  }
-  
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  placeholder?: string;
+  multiline?: boolean;
+  numberOfLines?: number;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  autoComplete?: TextInputProps["autoComplete"];
+  left?: React.ReactNode;
+  right?: React.ReactNode;
+  style?: any;
+  [key: string]: any; // For any additional props
+}
 
-const CleanTextInput: React.FC<CleanTextInputProps> = ({ 
-  label, 
-  value, 
-  onChangeText, 
-  secureTextEntry, 
-  keyboardType, 
-  placeholder, 
+const CleanTextInput: React.FC<CleanTextInputProps> = ({
+  label,
+  value,
+  onChangeText,
+  secureTextEntry,
+  keyboardType,
+  placeholder,
   multiline,
   numberOfLines,
   style,
-  ...props 
+  ...props
 }) => (
   <View style={styles.inputContainer}>
     <Text style={styles.inputLabel}>{label}</Text>
@@ -48,16 +52,16 @@ const CleanTextInput: React.FC<CleanTextInputProps> = ({
       contentStyle={styles.inputContent}
       theme={{
         colors: {
-          primary: '#4285F4',
-          outline: '#E8E8E8',
-          background: '#FAFAFA',
-          onSurfaceVariant: '#999999',
-        }
+          primary: "#4285F4",
+          outline: "#E8E8E8",
+          background: "#FAFAFA",
+          onSurfaceVariant: "#999999",
+        },
       }}
       {...props}
     />
   </View>
-)
+);
 
 const styles = StyleSheet.create({
   inputContainer: {
@@ -65,12 +69,12 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
+    fontWeight: "500",
+    color: "#333333",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FAFAFA',
+    backgroundColor: "#FAFAFA",
     fontSize: 16,
   },
   multilineInput: {
@@ -81,10 +85,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   inputOutline: {
-    borderColor: '#E8E8E8',
+    borderColor: "#E8E8E8",
     borderWidth: 1,
     borderRadius: 8,
   },
-})
+});
 
-export default CleanTextInput
+export default CleanTextInput;

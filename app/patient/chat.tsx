@@ -1,11 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, TouchableOpacity, Dimensions } from 'react-native'
-import { TextInput, Button, Card, Text, Chip, ActivityIndicator, Divider, List } from 'react-native-paper'
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Animated,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native'
+import {
+  TextInput,
+  Button,
+  Card,
+  Text,
+  Chip,
+  ActivityIndicator,
+  Divider,
+  List,
+} from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, ChatMessage, Patient } from '../../lib/supabase'
-import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
+import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler'
 import { showToast } from '~/utils/toast'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
@@ -33,7 +52,9 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser }) => {
   }
 
   return (
-    <View style={[styles.messageContainer, isUser ? styles.userMessage : styles.aiMessage]}>
+    <View
+      style={[styles.messageContainer, isUser ? styles.userMessage : styles.aiMessage]}
+    >
       <Card style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         <Card.Content style={styles.messageContent}>
           <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
@@ -47,10 +68,6 @@ const ChatBubble: React.FC<ChatBubbleProps> = ({ message, isUser }) => {
     </View>
   )
 }
-
-
-
-
 
 const PatientChatScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -131,8 +148,11 @@ const PatientChatScreen: React.FC = () => {
         }
       })
 
-      const sessionsArray = Array.from(sessionMap.values())
-        .sort((a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime())
+      const sessionsArray = Array.from(sessionMap.values()).sort(
+        (a, b) =>
+          new Date(b.last_message_time).getTime() -
+          new Date(a.last_message_time).getTime(),
+      )
 
       setSessions(sessionsArray)
     } catch (error) {
@@ -206,10 +226,10 @@ const PatientChatScreen: React.FC = () => {
         message: userMessage,
         timestamp: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, tempUserMessage])
+      setMessages((prev) => [...prev, tempUserMessage])
 
       // Get conversation history for context
-      const conversationHistory = messages.map(msg => ({
+      const conversationHistory = messages.map((msg) => ({
         role: msg.role,
         message: msg.message,
         timestamp: msg.timestamp,
@@ -217,19 +237,22 @@ const PatientChatScreen: React.FC = () => {
 
       // Call Gemini chat function with session ID
       console.log('Sending message with session ID:', currentSessionId)
-      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/gemini-chat`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            patientId: patient.id,
+            message: userMessage,
+            conversationHistory,
+            sessionId: currentSessionId,
+          }),
         },
-        body: JSON.stringify({
-          patientId: patient.id,
-          message: userMessage,
-          conversationHistory,
-          sessionId: currentSessionId,
-        }),
-      })
+      )
 
       if (!response.ok) {
         throw new Error('Failed to get AI response')
@@ -249,39 +272,37 @@ const PatientChatScreen: React.FC = () => {
       showToast.error('Error', 'Failed to send message. Please try again.')
 
       // Remove the temporary user message on error
-      setMessages(prev => prev.filter(msg => !msg.id.startsWith('temp-')))
+      setMessages((prev) => prev.filter((msg) => !msg.id.startsWith('temp-')))
     } finally {
       setLoading(false)
     }
   }
 
-  const clearChat = async() => {
+  const clearChat = async () => {
     showToast.warning(
       'Clear Chat History',
-      'Are you sure you want to clear all chat messages? This action cannot be undone.')
-     
-       
-        try {
-          const { error } = await supabase
-            .from('chat_messages')
-            .delete()
-            .eq('patient_id', patient?.id)
+      'Are you sure you want to clear all chat messages? This action cannot be undone.',
+    )
 
-          if (error) {
-            console.error('Error clearing chat:', error)
-            showToast.error('Error', 'Failed to clear chat history')
-          } else {
-            setMessages([])
-            setSessions([])
-            startNewSession()
-          }
-        } catch (error) {
-          console.error('Error clearing chat:', error)
-          showToast.error('Error', 'Failed to clear chat history')
-        }
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('patient_id', patient?.id)
+
+      if (error) {
+        console.error('Error clearing chat:', error)
+        showToast.error('Error', 'Failed to clear chat history')
+      } else {
+        setMessages([])
+        setSessions([])
+        startNewSession()
       }
-    
-  
+    } catch (error) {
+      console.error('Error clearing chat:', error)
+      showToast.error('Error', 'Failed to clear chat history')
+    }
+  }
 
   const handleNewSession = () => {
     startNewSession()
@@ -329,7 +350,9 @@ const PatientChatScreen: React.FC = () => {
   const formatSessionDate = (timestamp: string) => {
     const date = new Date(timestamp)
     const now = new Date()
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    const diffInDays = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+    )
 
     if (diffInDays === 0) return 'Today'
     if (diffInDays === 1) return 'Yesterday'
@@ -338,11 +361,11 @@ const PatientChatScreen: React.FC = () => {
   }
 
   const suggestedQuestions = [
-    "How are my recent vital signs?",
-    "What should I know about my last visit?",
-    "Are there any patterns in my health data?",
-    "What questions should I ask my doctor?",
-    "Help me understand my medications",
+    'How are my recent vital signs?',
+    'What should I know about my last visit?',
+    'Are there any patterns in my health data?',
+    'What questions should I ask my doctor?',
+    'Help me understand my medications',
   ]
 
   const handleSuggestedQuestion = (question: string) => {
@@ -363,185 +386,192 @@ const PatientChatScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <GestureHandlerRootView>
-      <PanGestureHandler onGestureEvent={handlePanGesture}>
-        <Animated.View style={{ flex: 1 }}>
-          <KeyboardAvoidingView
-            style={styles.keyboardAvoidingView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            {/* Chat Header */}
-            <View style={styles.header}>
-              <View style={styles.headerInfo}>
-                <TouchableOpacity onPress={toggleDrawer} style={styles.menuButton}>
-                  <MaterialIcons name="menu" size={24} color="#2196F3" />
-                </TouchableOpacity>
-                <MaterialIcons name="smart-toy" size={24} color="#2196F3" />
-                <Text style={styles.headerText}>AI Health Assistant</Text>
-              </View>
-              <View style={styles.headerActions}>
-                <Button mode="text" compact onPress={handleNewSession} style={styles.headerButton}>
-                  New Session
-                </Button>
-                <Button mode="text" compact onPress={clearChat}>
-                  Clear
-                </Button>
-              </View>
-            </View>
-
-            {/* Session Info */}
-            <View style={styles.sessionInfo}>
-              <Text style={styles.sessionText}>
-                Session: {currentSessionId.split('_').pop()?.substring(0, 8)}...
-              </Text>
-            </View>
-
-            {/* Messages */}
-            <ScrollView
-              ref={scrollViewRef}
-              style={styles.messagesContainer}
-              contentContainerStyle={styles.messagesContent}
+        <PanGestureHandler onGestureEvent={handlePanGesture}>
+          <Animated.View style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+              style={styles.keyboardAvoidingView}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             >
-              {messages.length === 0 ? (
-                <View style={styles.welcomeContainer}>
-                  <MaterialIcons name="chat" size={64} color="#ccc" />
-                  <Text style={styles.welcomeText}>Welcome to your AI Health Assistant!</Text>
-                  <Text style={styles.welcomeText}>
-                    I can help you understand your health data, answer questions about your visits,
-                    and provide insights based on your medical history.
-                  </Text>
+              {/* Chat Header */}
+              <View style={styles.header}>
+                <View style={styles.headerInfo}>
+                  <TouchableOpacity onPress={toggleDrawer} style={styles.menuButton}>
+                    <MaterialIcons name="menu" size={24} color="#2196F3" />
+                  </TouchableOpacity>
+                  <MaterialIcons name="smart-toy" size={24} color="#2196F3" />
+                  <Text style={styles.headerText}>AI Health Assistant</Text>
+                </View>
+                <View style={styles.headerActions}>
+                  <Button
+                    mode="text"
+                    compact
+                    onPress={handleNewSession}
+                    style={styles.headerButton}
+                  >
+                    New Session
+                  </Button>
+                  <Button mode="text" compact onPress={clearChat}>
+                    Clear
+                  </Button>
+                </View>
+              </View>
 
-                  <View style={styles.suggestedContainer}>
-                    <Text style={styles.suggestedText}>Try asking:</Text>
-                    {suggestedQuestions.map((question, index) => (
-                      <Chip
-                        key={index}
-                        mode="outlined"
-                        onPress={() => handleSuggestedQuestion(question)}
-                        style={styles.suggestedChip}
-                      >
-                        {question}
-                      </Chip>
-                    ))}
+              {/* Session Info */}
+              <View style={styles.sessionInfo}>
+                <Text style={styles.sessionText}>
+                  Session: {currentSessionId.split('_').pop()?.substring(0, 8)}...
+                </Text>
+              </View>
+
+              {/* Messages */}
+              <ScrollView
+                ref={scrollViewRef}
+                style={styles.messagesContainer}
+                contentContainerStyle={styles.messagesContent}
+              >
+                {messages.length === 0 ? (
+                  <View style={styles.welcomeContainer}>
+                    <MaterialIcons name="chat" size={64} color="#ccc" />
+                    <Text style={styles.welcomeText}>
+                      Welcome to your AI Health Assistant!
+                    </Text>
+                    <Text style={styles.welcomeText}>
+                      I can help you understand your health data, answer questions about
+                      your visits, and provide insights based on your medical history.
+                    </Text>
+
+                    <View style={styles.suggestedContainer}>
+                      <Text style={styles.suggestedText}>Try asking:</Text>
+                      {suggestedQuestions.map((question, index) => (
+                        <Chip
+                          key={index}
+                          mode="outlined"
+                          onPress={() => handleSuggestedQuestion(question)}
+                          style={styles.suggestedChip}
+                        >
+                          {question}
+                        </Chip>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              ) : (
-                messages.map((message) => (
-                  <ChatBubble
-                    key={message.id}
-                    message={message}
-                    isUser={message.role === 'user'}
-                  />
-                ))
-              )}
+                ) : (
+                  messages.map((message) => (
+                    <ChatBubble
+                      key={message.id}
+                      message={message}
+                      isUser={message.role === 'user'}
+                    />
+                  ))
+                )}
 
-              {loading && (
-                <View style={styles.typingIndicator}>
-                  <Card style={styles.typingBubble}>
-                    <Card.Content style={styles.typingContent}>
-                      <ActivityIndicator size="small" color="#2196F3" />
-                      <Text style={styles.typingText}>AI is thinking...</Text>
-                    </Card.Content>
-                  </Card>
-                </View>
-              )}
-            </ScrollView>
+                {loading && (
+                  <View style={styles.typingIndicator}>
+                    <Card style={styles.typingBubble}>
+                      <Card.Content style={styles.typingContent}>
+                        <ActivityIndicator size="small" color="#2196F3" />
+                        <Text style={styles.typingText}>AI is thinking...</Text>
+                      </Card.Content>
+                    </Card>
+                  </View>
+                )}
+              </ScrollView>
 
-            {/* Input Area */}
-            <View style={styles.inputContainer}>
-              <TextInput
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder="Ask about your health..."
-                mode="outlined"
-                multiline
-                maxLength={500}
-                style={styles.textInput}
-                right={
-                  <TextInput.Icon
-                    icon="send"
-                    onPress={sendMessage}
-                    disabled={!inputText.trim() || loading}
-                  />
-                }
-              />
-            </View>
-          </KeyboardAvoidingView>
+              {/* Input Area */}
+              <View style={styles.inputContainer}>
+                <TextInput
+                  value={inputText}
+                  onChangeText={setInputText}
+                  placeholder="Ask about your health..."
+                  mode="outlined"
+                  multiline
+                  maxLength={500}
+                  style={styles.textInput}
+                  right={
+                    <TextInput.Icon
+                      icon="send"
+                      onPress={sendMessage}
+                      disabled={!inputText.trim() || loading}
+                    />
+                  }
+                />
+              </View>
+            </KeyboardAvoidingView>
 
-          {/* Session Drawer */}
-          <Animated.View
-            style={[
-              styles.drawer,
-              {
-                transform: [{ translateX: drawerTranslateX }],
-              }
-            ]}
-          >
-            <View style={styles.drawerHeader}>
-              <Text style={styles.drawerText}>Chat Sessions</Text>
-              <TouchableOpacity onPress={toggleDrawer}>
-                <MaterialIcons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
+            {/* Session Drawer */}
+            <Animated.View
+              style={[
+                styles.drawer,
+                {
+                  transform: [{ translateX: drawerTranslateX }],
+                },
+              ]}
+            >
+              <View style={styles.drawerHeader}>
+                <Text style={styles.drawerText}>Chat Sessions</Text>
+                <TouchableOpacity onPress={toggleDrawer}>
+                  <MaterialIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
 
-            <Divider />
+              <Divider />
 
-            {/* <TouchableOpacity style={styles.newSessionButton} onPress={handleNewSession}>
+              {/* <TouchableOpacity style={styles.newSessionButton} onPress={handleNewSession}>
               <MaterialIcons name="add" size={20} color="#2196F3" />
               <Text style={styles.newSessionText}>Start New Session</Text>
             </TouchableOpacity> */}
 
-            <Divider />
+              <Divider />
 
-            <ScrollView style={styles.sessionsList}>
-              {sessionsLoading ? (
-                <View style={styles.sessionsLoading}>
-                  <ActivityIndicator size="small" color="#2196F3" />
-                  <Text style={styles.loadingText}>Loading sessions...</Text>
-                </View>
-              ) : sessions.length === 0 ? (
-                <View style={styles.noSessions}>
-                  <Text style={styles.noSessionsText}>No previous sessions</Text>
-                </View>
-              ) : (
-                sessions.map((session) => (
-                  <TouchableOpacity
-                    key={session.session_id}
-                    style={[
-                      styles.sessionItem,
-                      currentSessionId === session.session_id && styles.activeSession
-                    ]}
-                    onPress={() => switchToSession(session.session_id)}
-                  >
-                    <View style={styles.sessionInfo}>
-                      <Text style={styles.sessionDate}>
-                        {formatSessionDate(session.created_at)}
-                      </Text>
-                      <Text style={styles.sessionPreview} numberOfLines={2}>
-                        {session.last_message}
-                      </Text>
-                      <Text style={styles.sessionMeta}>
-                        {session.message_count} messages
-                      </Text>
-                    </View>
-                    {currentSessionId === session.session_id && (
-                      <MaterialIcons name="check-circle" size={20} color="#2196F3" />
-                    )}
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
+              <ScrollView style={styles.sessionsList}>
+                {sessionsLoading ? (
+                  <View style={styles.sessionsLoading}>
+                    <ActivityIndicator size="small" color="#2196F3" />
+                    <Text style={styles.loadingText}>Loading sessions...</Text>
+                  </View>
+                ) : sessions.length === 0 ? (
+                  <View style={styles.noSessions}>
+                    <Text style={styles.noSessionsText}>No previous sessions</Text>
+                  </View>
+                ) : (
+                  sessions.map((session) => (
+                    <TouchableOpacity
+                      key={session.session_id}
+                      style={[
+                        styles.sessionItem,
+                        currentSessionId === session.session_id && styles.activeSession,
+                      ]}
+                      onPress={() => switchToSession(session.session_id)}
+                    >
+                      <View style={styles.sessionInfo}>
+                        <Text style={styles.sessionDate}>
+                          {formatSessionDate(session.created_at)}
+                        </Text>
+                        <Text style={styles.sessionPreview} numberOfLines={2}>
+                          {session.last_message}
+                        </Text>
+                        <Text style={styles.sessionMeta}>
+                          {session.message_count} messages
+                        </Text>
+                      </View>
+                      {currentSessionId === session.session_id && (
+                        <MaterialIcons name="check-circle" size={20} color="#2196F3" />
+                      )}
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
+            </Animated.View>
+
+            {/* Drawer Overlay */}
+            {drawerVisible && (
+              <TouchableOpacity
+                style={styles.overlay}
+                onPress={toggleDrawer}
+                activeOpacity={1}
+              />
+            )}
           </Animated.View>
-
-          {/* Drawer Overlay */}
-          {drawerVisible && (
-            <TouchableOpacity
-              style={styles.overlay}
-              onPress={toggleDrawer}
-              activeOpacity={1}
-            />
-          )}
-        </Animated.View>
-      </PanGestureHandler>
+        </PanGestureHandler>
       </GestureHandlerRootView>
     </SafeAreaView>
   )
@@ -551,7 +581,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    marginTop: 0
+    marginTop: 0,
   },
   keyboardAvoidingView: {
     flex: 1,

@@ -19,7 +19,9 @@ const DoctorProfileScreen: React.FC = () => {
   // Editable fields
   const [phone, setPhone] = useState(doctor?.phone || '')
   const [specialization, setSpecialization] = useState(doctor?.specialization || '')
-  const [yearsOfExperience, setYearsOfExperience] = useState(doctor?.years_of_experience?.toString() || '')
+  const [yearsOfExperience, setYearsOfExperience] = useState(
+    doctor?.years_of_experience?.toString() || '',
+  )
 
   const handleSave = async () => {
     if (!doctor) return
@@ -79,26 +81,19 @@ const DoctorProfileScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.editHeaderButton}
           onPress={() => setEditing(!editing)}
         >
-          <MaterialIcons 
-            name={editing ? "close" : "edit"} 
-            size={24} 
-            color="#4285F4" 
-          />
+          <MaterialIcons name={editing ? 'close' : 'edit'} size={24} color="#4285F4" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -119,7 +114,7 @@ const DoctorProfileScreen: React.FC = () => {
         {/* Professional Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Professional Information</Text>
-          
+
           <View style={styles.card}>
             <View style={styles.fieldContainer}>
               <View style={styles.fieldHeader}>
@@ -135,9 +130,7 @@ const DoctorProfileScreen: React.FC = () => {
                   style={styles.input}
                 />
               ) : (
-                <Text style={styles.fieldValue}>
-                  {specialization || 'Not specified'}
-                </Text>
+                <Text style={styles.fieldValue}>{specialization || 'Not specified'}</Text>
               )}
             </View>
 
@@ -179,7 +172,7 @@ const DoctorProfileScreen: React.FC = () => {
         {/* Contact Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Information</Text>
-          
+
           <View style={styles.card}>
             <View style={styles.fieldContainer}>
               <View style={styles.fieldHeader}>
@@ -196,9 +189,7 @@ const DoctorProfileScreen: React.FC = () => {
                   style={styles.input}
                 />
               ) : (
-                <Text style={styles.fieldValue}>
-                  {phone || 'Not provided'}
-                </Text>
+                <Text style={styles.fieldValue}>{phone || 'Not provided'}</Text>
               )}
             </View>
 
@@ -217,7 +208,7 @@ const DoctorProfileScreen: React.FC = () => {
         {/* Practice Statistics */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Practice Overview</Text>
-          
+
           <View style={styles.card}>
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -227,7 +218,7 @@ const DoctorProfileScreen: React.FC = () => {
                 <Text style={styles.statValue}>-</Text>
                 <Text style={styles.statLabel}>Total Patients</Text>
               </View>
-              
+
               <View style={styles.statItem}>
                 <View style={[styles.statIcon, { backgroundColor: '#E8F5E8' }]}>
                   <MaterialIcons name="event" size={24} color="#4CAF50" />
@@ -235,7 +226,7 @@ const DoctorProfileScreen: React.FC = () => {
                 <Text style={styles.statValue}>-</Text>
                 <Text style={styles.statLabel}>Visits This Month</Text>
               </View>
-              
+
               <View style={styles.statItem}>
                 <View style={[styles.statIcon, { backgroundColor: '#FFF3E0' }]}>
                   <MaterialIcons name="trending-up" size={24} color="#FF9800" />
@@ -244,7 +235,7 @@ const DoctorProfileScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Success Rate</Text>
               </View>
             </View>
-            
+
             <Text style={styles.statsNote}>
               Statistics will be calculated based on your patient visits and outcomes.
             </Text>
@@ -269,7 +260,7 @@ const DoctorProfileScreen: React.FC = () => {
                   </>
                 )}
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.secondaryButton, loading && styles.disabledButton]}
                 onPress={handleCancel}
@@ -289,10 +280,7 @@ const DoctorProfileScreen: React.FC = () => {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={styles.dangerButton}
-            onPress={handleSignOut}
-          >
+          <TouchableOpacity style={styles.dangerButton} onPress={handleSignOut}>
             <MaterialIcons name="logout" size={20} color="#F44336" />
             <Text style={styles.dangerButtonText}>Sign Out</Text>
           </TouchableOpacity>

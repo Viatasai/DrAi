@@ -18,11 +18,8 @@ export default function index() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1976D2" />
-      
-      <LinearGradient
-        colors={['#2196F3', '#1976D2', '#0D47A1']}
-        style={styles.gradient}
-      >
+
+      <LinearGradient colors={['#2196F3', '#1976D2', '#0D47A1']} style={styles.gradient}>
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -39,12 +36,12 @@ export default function index() {
               <MaterialIcons name="health-and-safety" size={32} color="#E3F2FD" />
               <Text style={styles.featureText}>Quality Healthcare</Text>
             </View>
-            
+
             <View style={styles.feature}>
               <MaterialIcons name="psychology" size={32} color="#E3F2FD" />
               <Text style={styles.featureText}>AI-Powered Insights</Text>
             </View>
-            
+
             <View style={styles.feature}>
               <MaterialIcons name="people" size={32} color="#E3F2FD" />
               <Text style={styles.featureText}>Expert Doctors</Text>
@@ -52,7 +49,8 @@ export default function index() {
           </View>
 
           <Text style={styles.subtitle}>
-            Your trusted partner in healthcare management, connecting patients with professional medical care through innovative technology.
+            Your trusted partner in healthcare management, connecting patients with
+            professional medical care through innovative technology.
           </Text>
         </View>
 

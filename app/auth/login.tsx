@@ -8,8 +8,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
 
-
-
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,9 +25,9 @@ const LoginScreen: React.FC = () => {
     setLoading(true)
     try {
       const { data, error } = await signIn(email, password)
-      
+
       if (error) {
-        showToast.error( error.message || 'Login failed')
+        showToast.error(error.message || 'Login failed')
         return
       }
 
@@ -48,21 +46,16 @@ const LoginScreen: React.FC = () => {
     router.push('/auth/role-selection')
   }
 
-  
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={handleBackToRoles}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={handleBackToRoles}>
           <MaterialIcons name="arrow-back" size={24} color="#333333" />
         </TouchableOpacity>
         <Text style={styles.title}>Sign In</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -72,9 +65,7 @@ const LoginScreen: React.FC = () => {
             <MaterialIcons name="local-hospital" size={48} color="#4285F4" />
           </View>
           <Text style={styles.welcomeTitle}>Welcome Back</Text>
-          <Text style={styles.welcomeSubtitle}>
-            Sign in to your DrAi account
-          </Text>
+          <Text style={styles.welcomeSubtitle}>Sign in to your DrAi account</Text>
         </View>
 
         <View style={styles.formSection}>
@@ -91,14 +82,13 @@ const LoginScreen: React.FC = () => {
           <CleanTextInput
             label="Password"
             value={password}
-            
             onChangeText={setPassword}
             placeholder="Enter your password"
             secureTextEntry={!showPassword}
             autoComplete="password"
             right={
               <TextInput.Icon
-                icon={showPassword ? "eye-off" : "eye"}
+                icon={showPassword ? 'eye-off' : 'eye'}
                 onPress={() => setShowPassword(!showPassword)}
                 iconColor="#999999"
               />
@@ -122,10 +112,7 @@ const LoginScreen: React.FC = () => {
 
           <Text style={styles.signUpText}>
             Don't have an account?{' '}
-            <Text 
-              style={styles.linkText}
-              onPress={handleBackToRoles}
-            >
+            <Text style={styles.linkText} onPress={handleBackToRoles}>
               Create Account
             </Text>
           </Text>

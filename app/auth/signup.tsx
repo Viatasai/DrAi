@@ -11,15 +11,19 @@ const { width } = Dimensions.get('window')
 
 const SignUpScreen: React.FC = () => {
   // ⭐ changed: read more params and compute helpers
-  const { role, as, return: returnToParam } = useLocalSearchParams<{
-    role: string;
-    as?: string;
-    return?: string;
+  const {
+    role,
+    as,
+    return: returnToParam,
+  } = useLocalSearchParams<{
+    role: string
+    as?: string
+    return?: string
   }>()
   const returnTo = typeof returnToParam === 'string' ? returnToParam : undefined
   const launchedByDoctor = as === 'doctor'
   console.log(launchedByDoctor)
-  
+
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -55,7 +59,9 @@ const SignUpScreen: React.FC = () => {
   const validateForm = () => {
     // Basic validation
     if (!email || !password || !confirmPassword || !name) {
-      showToast.validationError('Please fill in all required fields (Name, Email, Password)')
+      showToast.validationError(
+        'Please fill in all required fields (Name, Email, Password)',
+      )
       return false
     }
 
@@ -94,7 +100,10 @@ const SignUpScreen: React.FC = () => {
         showToast.validationError('License number is required for doctors')
         return false
       }
-      if (yearsOfExperience && (isNaN(parseInt(yearsOfExperience)) || parseInt(yearsOfExperience) < 0)) {
+      if (
+        yearsOfExperience &&
+        (isNaN(parseInt(yearsOfExperience)) || parseInt(yearsOfExperience) < 0)
+      ) {
         showToast.validationError('Please enter a valid number for years of experience')
         return false
       }
@@ -103,20 +112,27 @@ const SignUpScreen: React.FC = () => {
     return true
   }
 
-  const createUserWithEdgeFunction = async (email: string, password: string, userData: any) => {
+  const createUserWithEdgeFunction = async (
+    email: string,
+    password: string,
+    userData: any,
+  ) => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            userData,
+          }),
         },
-        body: JSON.stringify({
-          email,
-          password,
-          userData
-        })
-      })
+      )
 
       const result = await response.json()
 
@@ -127,10 +143,10 @@ const SignUpScreen: React.FC = () => {
       return { data: result, error: null }
     } catch (error) {
       console.error('Edge function call error:', error)
-      return { 
-        error: { 
-          message: error instanceof Error ? error.message : 'Network error occurred' 
-        } 
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'Network error occurred',
+        },
       }
     }
   }
@@ -169,42 +185,49 @@ const SignUpScreen: React.FC = () => {
 
       // Call the edge function instead of signUp
       const { error, data } = await createUserWithEdgeFunction(
-        email.trim().toLowerCase(), 
-        password, 
-        userData
+        email.trim().toLowerCase(),
+        password,
+        userData,
       )
 
       if (error) {
         console.error('Signup error:', error)
-        
+
         // Handle different types of errors with appropriate toasts
-        if (error.message?.includes('User already registered') || error.message?.includes('email')) {
+        if (
+          error.message?.includes('User already registered') ||
+          error.message?.includes('email')
+        ) {
           showToast.authError('Email is already registered or invalid')
         } else if (error.message?.includes('password')) {
           showToast.validationError('Password requirements not met')
         } else if (error.message?.includes('duplicate')) {
           showToast.error('An account with this information already exists')
-        } else if (error.message?.includes('network') || error.message?.includes('connection') || error.message?.includes('fetch')) {
+        } else if (
+          error.message?.includes('network') ||
+          error.message?.includes('connection') ||
+          error.message?.includes('fetch')
+        ) {
           showToast.networkError()
         } else {
           showToast.error(error.message || 'Account creation failed')
         }
       } else {
         console.log('User created successfully:', data)
-        
+
         // ⭐ Success flow - no need to sign out since user was never logged in
         if (launchedByDoctor) {
           console.log('Patient account created by doctor')
           showToast.success(
             'Patient account created successfully. They can now sign in from the patient app.',
             'Account Created',
-            () => router.replace(returnTo || '/doctor')
+            () => router.replace(returnTo || '/doctor'),
           )
         } else {
           showToast.success(
             'Account created successfully! You can now sign in with your credentials.',
             'Welcome!',
-            () => router.push('/auth/login')
+            () => router.push('/auth/login'),
           )
         }
       }
@@ -218,10 +241,14 @@ const SignUpScreen: React.FC = () => {
 
   const getRoleText = () => {
     switch (role) {
-      case 'patient': return 'Patient Sign Up'
-      case 'field_doctor': return 'Doctor Sign Up'
-      case 'admin': return 'Admin Sign Up'
-      default: return 'Sign Up'
+      case 'patient':
+        return 'Patient Sign Up'
+      case 'field_doctor':
+        return 'Doctor Sign Up'
+      case 'admin':
+        return 'Admin Sign Up'
+      default:
+        return 'Sign Up'
     }
   }
 
@@ -229,7 +256,7 @@ const SignUpScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         {/* ⭐ changed: smarter back behavior when launched by doctor */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => {
             if (launchedByDoctor && returnTo) {
@@ -244,7 +271,7 @@ const SignUpScreen: React.FC = () => {
         <Text style={styles.title}>{getRoleText()}</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -283,8 +310,8 @@ const SignUpScreen: React.FC = () => {
           placeholder="Enter password"
           secureTextEntry={!showPassword}
           right={
-            <TextInput.Icon 
-              icon={showPassword ? "eye-off" : "eye"} 
+            <TextInput.Icon
+              icon={showPassword ? 'eye-off' : 'eye'}
               onPress={() => setShowPassword(!showPassword)}
               iconColor="#999999"
             />
@@ -315,19 +342,19 @@ const SignUpScreen: React.FC = () => {
               <SegmentedButtons
                 value={gender}
                 onValueChange={setGender}
-                buttons={genderOptions.map(option => ({
+                buttons={genderOptions.map((option) => ({
                   ...option,
-                  style: { 
+                  style: {
                     backgroundColor: gender === option.value ? '#4285F4' : '#FFFFFF',
-                    borderColor: '#E8E8E8'
-                  }
+                    borderColor: '#E8E8E8',
+                  },
                 }))}
                 style={styles.segmentedButtons}
                 theme={{
                   colors: {
                     secondaryContainer: '#4285F4',
                     onSecondaryContainer: '#FFFFFF',
-                  }
+                  },
                 }}
               />
             </View>
@@ -426,22 +453,16 @@ const SignUpScreen: React.FC = () => {
         >
           {loading ? 'Creating Account...' : 'Continue'}
         </Button>
-        {
-
-          !launchedByDoctor && (
-        
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Already have an account?{' '}
-            <Text 
-              style={styles.linkText}
-              onPress={() => router.push('/auth/login')}
-            >
-              Sign In
+        {!launchedByDoctor && (
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Already have an account?{' '}
+              <Text style={styles.linkText} onPress={() => router.push('/auth/login')}>
+                Sign In
+              </Text>
             </Text>
-          </Text>
-        </View>
-)}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   )
@@ -449,8 +470,22 @@ const SignUpScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, backgroundColor: '#FFFFFF' },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
   title: { fontSize: 24, fontWeight: '600', color: '#333333', flex: 1 },
   content: { flex: 1, backgroundColor: '#FFFFFF' },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
@@ -460,8 +495,19 @@ const styles = StyleSheet.create({
   multilineInput: { paddingTop: 12 },
   inputContent: { paddingHorizontal: 16, paddingVertical: 12 },
   inputOutline: { borderColor: '#E8E8E8', borderWidth: 1, borderRadius: 8 },
-  segmentedButtons: { backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 1, borderColor: '#E8E8E8' },
-  continueButton: { borderRadius: 12, marginTop: 20, marginBottom: 24, elevation: 0, shadowOpacity: 0 },
+  segmentedButtons: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+  },
+  continueButton: {
+    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 24,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
   buttonContent: { paddingVertical: 12 },
   footer: { alignItems: 'center', paddingVertical: 20 },
   footerText: { fontSize: 16, color: '#666666', textAlign: 'center' },

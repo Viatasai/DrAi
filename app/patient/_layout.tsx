@@ -15,12 +15,9 @@ export default function PatientLayout() {
     }
   }, [user, userRole, loading])
 
-
   if (!user || !userRole || userRole.role !== 'patient') {
     return null // Will redirect in useEffect
   }
-
- 
 
   return (
     <Tabs
@@ -93,17 +90,15 @@ export default function PatientLayout() {
       <Tabs.Screen
         name="edit-visit"
         options={{
-         href: null, // Hide from tab bar
-        } }
+          href: null, // Hide from tab bar
+        }}
       />
-            <Tabs.Screen
+      <Tabs.Screen
         name="AddVitals"
         options={{
-         href: null, // Hide from tab bar
-        } }
+          href: null, // Hide from tab bar
+        }}
       />
-      
     </Tabs>
   )
 }
-
