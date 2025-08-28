@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Share } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, Share, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Text,
@@ -8,12 +8,20 @@ import {
   ActivityIndicator,
   Searchbar,
   Menu,
+  Checkbox,
+  Modal,
+  Portal,
+  Divider,
+  Chip,
+  IconButton,
 } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../lib/supabase';
 import EmptyState from '~/components/EmptyState';
 
 type VisitTypeFilter = 'all' | 'in_person' | 'self_recorded' | 'virtual';
+type SortOption = 'date_desc' | 'date_asc' | 'type_asc' | 'type_desc';
 
 type VisitRow = {
   id: string;
@@ -23,11 +31,16 @@ type VisitRow = {
   symptoms: string | null;
   location: any | null; // jsonb
   patient_id: string | null;
+  notes?: string | null;
+  doctor_name?: string | null;
+  treatment?: string | null;
   patients?: {
     id: string;
     name: string | null;
     email: string | null;
     phone: string | null;
+    age?: number | null;
+    gender?: string | null;
   } | null;
 };
 
@@ -47,13 +60,25 @@ function formatWhen(iso?: string | null): string {
   })}`;
 }
 
+function formatDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
 export default function VisitsScreen() {
   // header controls
   const [visitType, setVisitType] = useState<VisitTypeFilter>('all');
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('date_desc');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  
+  // menu states
   const [regionMenuVisible, setRegionMenuVisible] = useState(false);
   const [typeMenuVisible, setTypeMenuVisible] = useState(false);
+  const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // list state
   const [items, setItems] = useState<VisitRow[]>([]);
@@ -61,6 +86,14 @@ export default function VisitsScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // selection state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showExportButton, setShowExportButton] = useState(false);
+
+  // modal state
+  const [selectedVisit, setSelectedVisit] = useState<VisitRow | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // distinct regions derived from loaded rows
   const regions = useMemo(() => {
@@ -71,6 +104,35 @@ export default function VisitsScreen() {
     }
     return ['All regions', ...Array.from(s).sort()];
   }, [items]);
+
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedItems.size === items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(items.map(item => item.id)));
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  // Update export button visibility
+  useEffect(() => {
+    setShowExportButton(selectedItems.size > 0);
+  }, [selectedItems]);
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedItems(new Set());
+  }, [visitType, region, search, sortBy, startDate, endDate]);
 
   // ---------- query builders ----------
   const applyVisitType = (q: any) => {
@@ -86,17 +148,38 @@ export default function VisitsScreen() {
     return q.filter('location->>locality', 'eq', region);
   };
 
-  // server-side for diagnosis/symptoms; patient search is client-side
+  const applyDateRange = (q: any) => {
+    if (startDate) {
+      q = q.gte('created_at', formatDate(startDate));
+    }
+    if (endDate) {
+      const endDateStr = formatDate(new Date(endDate.getTime() + 24 * 60 * 60 * 1000)); // Add one day
+      q = q.lt('created_at', endDateStr);
+    }
+    return q;
+  };
+
+  const applySorting = (q: any) => {
+    switch (sortBy) {
+      case 'date_asc':
+        return q.order('created_at', { ascending: true });
+      case 'type_asc':
+        return q.order('visit_type', { ascending: true }).order('created_at', { ascending: false });
+      case 'type_desc':
+        return q.order('visit_type', { ascending: false }).order('created_at', { ascending: false });
+      default:
+        return q.order('created_at', { ascending: false });
+    }
+  };
+
+  // Remove server-side search - we'll do all filtering on frontend
   const applySearch = (q: any) => {
-    const s = (search || '').trim();
-    if (!s) return q;
-    const esc = s.replace(/[%_]/g, c => `\\${c}`);
-    return q.or(`diagnosis.ilike.%${esc}%,symptoms.ilike.%${esc}%`);
+    return q; // No server-side search filtering
   };
 
   const baseSelect = `
     id, created_at, visit_type, diagnosis, symptoms, location, patient_id,
-    patients:patient_id ( id, name, email, phone )
+    patients:patient_id ( id, name, email, phone, age, gender )
   `;
 
   // ---------- data ----------
@@ -108,10 +191,9 @@ export default function VisitsScreen() {
       let q = supabase
         .from('visits')
         .select(baseSelect)
-        .order('created_at', { ascending: false })
         .range(from, to);
 
-      q = applyVisitType(applyRegion(applySearch(q)));
+      q = applySorting(applyVisitType(applyRegion(applyDateRange(applySearch(q)))));
 
       const { data, error } = await q;
       if (error) {
@@ -133,7 +215,7 @@ export default function VisitsScreen() {
         const uniq = Array.from(new Set(idsNeedingLookup));
         const { data: pats } = await supabase
           .from('patients')
-          .select('id, name, email, phone')
+          .select('id, name, email, phone, age, gender')
           .in('id', uniq);
         const map = new Map((pats || []).map(p => [p.id, p]));
         rows = rows.map(r =>
@@ -141,22 +223,86 @@ export default function VisitsScreen() {
         );
       }
 
-      // client-side patient search on current page
+      // Client-side filtering for all search criteria
+      let filteredRows = rows;
+      
+      // Apply search filter
       const needle = search.trim().toLowerCase();
       if (needle) {
-        rows = rows.filter(r => {
+        filteredRows = filteredRows.filter(r => {
           const p = r.patients;
-          const hay = [p?.name, p?.email, p?.phone]
+          const searchFields = [
+            // Patient fields
+            p?.name, p?.email, p?.phone,
+            // Visit fields
+            r.diagnosis, r.symptoms, r.notes, r.doctor_name, r.treatment,
+            r.visit_type,
+            // Location
+            locality(r.location)
+          ];
+          
+          const haystack = searchFields
             .filter(Boolean)
             .join(' ')
             .toLowerCase();
-          return hay.includes(needle); // <-- real filter now
+          return haystack.includes(needle);
         });
       }
 
-      return { rows, more: rows.length === PAGE_SIZE };
+      // Apply visit type filter
+      if (visitType !== 'all') {
+        filteredRows = filteredRows.filter(r => {
+          if (visitType === 'in_person') return r.visit_type === 'in_person';
+          if (visitType === 'self_recorded') return r.visit_type === 'self_recorded';
+          if (visitType === 'virtual') return ['chat', 'virtual_consultation', 'virtual'].includes(r.visit_type || '');
+          return true;
+        });
+      }
+
+      // Apply region filter
+      if (region && region !== 'All regions') {
+        filteredRows = filteredRows.filter(r => locality(r.location) === region);
+      }
+
+      // Apply date range filter
+      if (startDate || endDate) {
+        filteredRows = filteredRows.filter(r => {
+          if (!r.created_at) return false;
+          const visitDate = new Date(r.created_at);
+          if (startDate && visitDate < startDate) return false;
+          if (endDate && visitDate > new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) return false;
+          return true;
+        });
+      }
+
+      // Apply sorting
+      filteredRows.sort((a, b) => {
+        switch (sortBy) {
+          case 'date_asc':
+            return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+          case 'date_desc':
+            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+          case 'type_asc':
+            return (a.visit_type || '').localeCompare(b.visit_type || '');
+          case 'type_desc':
+            return (b.visit_type || '').localeCompare(a.visit_type || '');
+          default:
+            return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        }
+      });
+
+      // Apply pagination
+      const startIndex = p * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const paginatedRows = filteredRows.slice(startIndex, endIndex);
+
+      return { 
+        rows: paginatedRows, 
+        more: endIndex < filteredRows.length,
+        totalFiltered: filteredRows.length 
+      };
     },
-    [visitType, region, search]
+    [visitType, region, search, sortBy, startDate, endDate]
   );
 
   const loadInitial = useCallback(async () => {
@@ -170,7 +316,7 @@ export default function VisitsScreen() {
 
   useEffect(() => {
     loadInitial();
-  }, [visitType, region, search, loadInitial]);
+  }, [visitType, region, search, sortBy, startDate, endDate, loadInitial]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -196,6 +342,7 @@ export default function VisitsScreen() {
 
   const shareCsv = async () => {
     try {
+      const selectedVisits = items.filter(item => selectedItems.has(item.id));
       const header = [
         'Visit ID',
         'Date/Time',
@@ -203,12 +350,17 @@ export default function VisitsScreen() {
         'Patient Name',
         'Patient Email',
         'Patient Phone',
+        'Patient Age',
+        'Patient Gender',
+        'Doctor Name',
         'Diagnosis',
         'Symptoms',
+        'Treatment',
+        'Notes',
         'Locality',
       ];
       const lines = [header.join(',')];
-      for (const v of items) {
+      for (const v of selectedVisits) {
         lines.push(
           [
             v.id,
@@ -217,17 +369,50 @@ export default function VisitsScreen() {
             v.patients?.name || '',
             v.patients?.email || '',
             v.patients?.phone || '',
+            v.patients?.age || '',
+            v.patients?.gender || '',
+            v.doctor_name || '',
             v.diagnosis || '',
             v.symptoms || '',
+            v.treatment || '',
+            v.notes || '',
             locality(v.location),
           ].map(escapeCsv).join(',')
         );
       }
       const csv = lines.join('\n');
-      await Share.share({ title: 'Visits CSV', message: csv });
+      await Share.share({ 
+        title: `Visits Export (${selectedVisits.length} records)`, 
+        message: csv 
+      });
     } catch (e) {
       console.error('share csv error', e);
     }
+  };
+
+  const clearDateFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
+
+  const getSortLabel = (sort: SortOption) => {
+    switch (sort) {
+      case 'date_asc': return 'Date ↑';
+      case 'date_desc': return 'Date ↓';
+      case 'type_asc': return 'Type ↑';
+      case 'type_desc': return 'Type ↓';
+      default: return 'Sort';
+    }
+  };
+
+  const openVisitModal = (visit: VisitRow) => {
+    setSelectedVisit(visit);
+    setModalVisible(true);
+  };
+
+  const closeVisitModal = () => {
+    setModalVisible(false);
+    setSelectedVisit(null);
   };
 
   // ---------- header ----------
@@ -235,90 +420,157 @@ export default function VisitsScreen() {
     () => (
       <View style={styles.stickyHeader}>
         <View style={styles.headerRow}>
-          <MaterialIcons name="assignment" size={20} color="#FF9800" />
-        <View style={styles.headerTextWrap}>
+          <MaterialIcons name="assignment" size={24} color="#FF9800" />
+          <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Visits</Text>
-            <Text style={styles.headerSub}>All visit records</Text>
+            <Text style={styles.headerSub}>
+              {items.length} records {selectedItems.size > 0 && `• ${selectedItems.size} selected`}
+            </Text>
           </View>
         </View>
 
         <View style={styles.controlsRow}>
           <Searchbar
-            placeholder="Search diagnosis/symptoms or patient…"
+            placeholder="Search visits, patients, diagnosis..."
             value={search}
             onChangeText={setSearch}
-            style={[styles.search, { flex: 1 }]}
+            style={styles.search}
             inputStyle={{ fontSize: 14 }}
           />
-
-          <Menu
-            visible={typeMenuVisible}
-            onDismiss={() => setTypeMenuVisible(false)}
-            anchor={
-              <Button
-                mode="outlined"
-                onPress={() => setTypeMenuVisible(true)}
-                style={styles.filterBtn}
-                icon={({ size, color }) => (
-                  <MaterialIcons name="filter-list" size={size} color={color} />
-                )}
-              >
-                {visitType === 'all' ? 'Filter' : visitType.replace('_', ' ')}
-              </Button>
-            }
-          >
-            <Menu.Item onPress={() => { setVisitType('all'); setTypeMenuVisible(false); }} title="Clear filter" />
-            <Menu.Item onPress={() => { setVisitType('in_person'); setTypeMenuVisible(false); }} title="In-person" />
-            <Menu.Item onPress={() => { setVisitType('self_recorded'); setTypeMenuVisible(false); }} title="Self-recorded" />
-            <Menu.Item onPress={() => { setVisitType('virtual'); setTypeMenuVisible(false); }} title="Virtual consultation" />
-          </Menu>
-
-          <Menu
-            visible={regionMenuVisible}
-            onDismiss={() => setRegionMenuVisible(false)}
-            anchor={
-              <Button
-                mode="outlined"
-                onPress={() => setRegionMenuVisible(true)}
-                style={styles.filterBtn}
-                icon={({ size, color }) => (
-                  <MaterialIcons name="place" size={size} color={color} />
-                )}
-              >
-                {region ?? 'Region'}
-              </Button>
-            }
-          >
-            {regions.map((r) => (
-              <Menu.Item
-                key={r}
-                onPress={() => {
-                  setRegion(r === 'All regions' ? null : r);
-                  setRegionMenuVisible(false);
-                }}
-                title={r}
-              />
-            ))}
-          </Menu>
-
-          <Button
-            mode="contained"
-            onPress={shareCsv}
-            style={styles.exportBtn}
-            icon={({ size }) => (
-              <MaterialIcons name="download" size={size} color="white" />
-            )}
-          >
-            Export
-          </Button>
         </View>
+
+        <View style={styles.filtersRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
+            <Menu
+              visible={typeMenuVisible}
+              onDismiss={() => setTypeMenuVisible(false)}
+              anchor={
+                <Chip
+                  mode={visitType !== 'all' ? 'flat' : 'outlined'}
+                  onPress={() => setTypeMenuVisible(true)}
+                  icon="filter-list"
+                  style={styles.filterChip}
+                >
+                  {visitType === 'all' ? 'All Types' : visitType.replace('_', ' ')}
+                </Chip>
+              }
+            >
+              <Menu.Item onPress={() => { setVisitType('all'); setTypeMenuVisible(false); }} title="All Types" />
+              <Menu.Item onPress={() => { setVisitType('in_person'); setTypeMenuVisible(false); }} title="In-person" />
+              <Menu.Item onPress={() => { setVisitType('self_recorded'); setTypeMenuVisible(false); }} title="Self-recorded" />
+              <Menu.Item onPress={() => { setVisitType('virtual'); setTypeMenuVisible(false); }} title="Virtual" />
+            </Menu>
+
+            <Menu
+              visible={regionMenuVisible}
+              onDismiss={() => setRegionMenuVisible(false)}
+              anchor={
+                <Chip
+                  mode={region ? 'flat' : 'outlined'}
+                  onPress={() => setRegionMenuVisible(true)}
+                  icon="place"
+                  style={styles.filterChip}
+                >
+                  {region || 'All Regions'}
+                </Chip>
+              }
+            >
+              {regions.map((r) => (
+                <Menu.Item
+                  key={r}
+                  onPress={() => {
+                    setRegion(r === 'All regions' ? null : r);
+                    setRegionMenuVisible(false);
+                  }}
+                  title={r}
+                />
+              ))}
+            </Menu>
+
+            <Menu
+              visible={sortMenuVisible}
+              onDismiss={() => setSortMenuVisible(false)}
+              anchor={
+                <Chip
+                  mode="outlined"
+                  onPress={() => setSortMenuVisible(true)}
+                  icon="sort"
+                  style={styles.filterChip}
+                >
+                  {getSortLabel(sortBy)}
+                </Chip>
+              }
+            >
+              <Menu.Item onPress={() => { setSortBy('date_desc'); setSortMenuVisible(false); }} title="Latest First" />
+              <Menu.Item onPress={() => { setSortBy('date_asc'); setSortMenuVisible(false); }} title="Oldest First" />
+              <Menu.Item onPress={() => { setSortBy('type_asc'); setSortMenuVisible(false); }} title="Type A-Z" />
+              <Menu.Item onPress={() => { setSortBy('type_desc'); setSortMenuVisible(false); }} title="Type Z-A" />
+            </Menu>
+
+            <Chip
+              mode={startDate || endDate ? 'flat' : 'outlined'}
+              onPress={() => setShowStartDatePicker(true)}
+              icon="calendar-range"
+              style={styles.filterChip}
+              onClose={startDate || endDate ? clearDateFilter : undefined}
+            >
+              {startDate || endDate ? 'Date Range' : 'All Dates'}
+            </Chip>
+          </ScrollView>
+        </View>
+
+        {showExportButton && (
+          <View style={styles.exportRow}>
+            <Button
+              mode="contained"
+              onPress={shareCsv}
+              style={styles.exportBtn}
+              icon="download"
+            >
+              Export {selectedItems.size} Selected
+            </Button>
+          </View>
+        )}
+
+        {/* Date Pickers */}
+        {showStartDatePicker && (
+          <DateTimePicker
+            value={startDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowStartDatePicker(false);
+              if (selectedDate) {
+                setStartDate(selectedDate);
+                if (!endDate) {
+                  setTimeout(() => setShowEndDatePicker(true), 100);
+                }
+              }
+            }}
+          />
+        )}
+        
+        {showEndDatePicker && (
+          <DateTimePicker
+            value={endDate || new Date()}
+            mode="date"
+            display="default"
+            minimumDate={startDate || undefined}
+            onChange={(event, selectedDate) => {
+              setShowEndDatePicker(false);
+              if (selectedDate) {
+                setEndDate(selectedDate);
+              }
+            }}
+          />
+        )}
       </View>
     ),
-    [search, region, regions, regionMenuVisible, typeMenuVisible, visitType]
+    [search, region, regions, regionMenuVisible, typeMenuVisible, sortMenuVisible, visitType, sortBy, selectedItems.size, showExportButton, startDate, endDate, items.length]
   );
 
   // ---------- list ----------
-  const renderItem = ({ item }: { item: VisitRow }) => {
+  const renderItem = ({ item, index }: { item: VisitRow; index: number }) => {
     const p = item.patients;
     const who =
       p?.name || p?.email || p?.phone
@@ -333,18 +585,74 @@ export default function VisitsScreen() {
       .join('')
       .trim();
 
+    const isSelected = selectedItems.has(item.id);
+    const isSelectAll = index === 0;
+
     return (
-      <List.Item
-        title={who}
-        description={line2}
-        left={() => (
-          <MaterialIcons name="person" size={20} color="#555" style={styles.leftIcon} />
-        )}
-        right={() => <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>}
-        onPress={() => {
-          // TODO: open bottom sheet or detail (reuse VisitCard) in the next step
-        }}
-      />
+      <View style={styles.itemContainer}>
+        <View style={styles.checkboxContainer}>
+          {isSelectAll ? (
+            <Checkbox
+              status={
+                selectedItems.size === 0 ? 'unchecked' : 
+                selectedItems.size === items.length ? 'checked' : 'indeterminate'
+              }
+              onPress={toggleSelectAll}
+            />
+          ) : (
+            <Checkbox
+              status={isSelected ? 'checked' : 'unchecked'}
+              onPress={() => toggleSelectItem(item.id)}
+            />
+          )}
+        </View>
+        <List.Item
+          style={[styles.listItem, isSelected && styles.selectedItem]}
+          title={who}
+          description={line2}
+          left={() => (
+            <MaterialIcons 
+              name="person" 
+              size={20} 
+              color={isSelected ? "#FF9800" : "#555"} 
+              style={styles.leftIcon} 
+            />
+          )}
+          right={() => <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>}
+          onPress={() => openVisitModal(item)}
+        />
+      </View>
+    );
+  };
+
+  const renderSelectAllItem = () => {
+    if (items.length === 0) return null;
+    
+    return (
+      <View style={styles.selectAllContainer}>
+        <View style={styles.checkboxContainer}>
+          <Checkbox
+            status={
+              selectedItems.size === 0 ? 'unchecked' : 
+              selectedItems.size === items.length ? 'checked' : 'indeterminate'
+            }
+            onPress={toggleSelectAll}
+          />
+        </View>
+        <List.Item
+          style={styles.selectAllItem}
+          title="Select All"
+          description={`${selectedItems.size} of ${items.length} selected`}
+          left={() => (
+            <MaterialIcons 
+              name="select-all" 
+              size={20} 
+              color="#FF9800" 
+              style={styles.leftIcon} 
+            />
+          )}
+        />
+      </View>
     );
   };
 
@@ -357,6 +665,107 @@ export default function VisitsScreen() {
     </View>
   );
 
+  const VisitDetailModal = () => (
+    <Portal>
+      <Modal visible={modalVisible} onDismiss={closeVisitModal} contentContainerStyle={styles.modalContainer}>
+        {selectedVisit && (
+          <ScrollView style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Visit Details</Text>
+              <IconButton icon="close" onPress={closeVisitModal} />
+            </View>
+            
+            <Divider style={styles.modalDivider} />
+            
+            {/* Patient Info */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Patient Information</Text>
+              <Text style={styles.detailLabel}>Name:</Text>
+              <Text style={styles.detailValue}>{selectedVisit.patients?.name || 'Not provided'}</Text>
+              
+              <Text style={styles.detailLabel}>Email:</Text>
+              <Text style={styles.detailValue}>{selectedVisit.patients?.email || 'Not provided'}</Text>
+              
+              <Text style={styles.detailLabel}>Phone:</Text>
+              <Text style={styles.detailValue}>{selectedVisit.patients?.phone || 'Not provided'}</Text>
+              
+              {selectedVisit.patients?.age && (
+                <>
+                  <Text style={styles.detailLabel}>Age:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.patients.age}</Text>
+                </>
+              )}
+              
+              {selectedVisit.patients?.gender && (
+                <>
+                  <Text style={styles.detailLabel}>Gender:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.patients.gender}</Text>
+                </>
+              )}
+            </View>
+
+            <Divider style={styles.modalDivider} />
+
+            {/* Visit Info */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Visit Information</Text>
+              <Text style={styles.detailLabel}>Date & Time:</Text>
+              <Text style={styles.detailValue}>{formatWhen(selectedVisit.created_at)}</Text>
+              
+              <Text style={styles.detailLabel}>Visit Type:</Text>
+              <Text style={styles.detailValue}>{selectedVisit.visit_type || 'Not specified'}</Text>
+              
+              <Text style={styles.detailLabel}>Location:</Text>
+              <Text style={styles.detailValue}>{locality(selectedVisit.location) || 'Not provided'}</Text>
+              
+              {selectedVisit.doctor_name && (
+                <>
+                  <Text style={styles.detailLabel}>Doctor:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.doctor_name}</Text>
+                </>
+              )}
+            </View>
+
+            <Divider style={styles.modalDivider} />
+
+            {/* Medical Info */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Medical Information</Text>
+              
+              {selectedVisit.diagnosis && (
+                <>
+                  <Text style={styles.detailLabel}>Diagnosis:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.diagnosis}</Text>
+                </>
+              )}
+              
+              {selectedVisit.symptoms && (
+                <>
+                  <Text style={styles.detailLabel}>Symptoms:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.symptoms}</Text>
+                </>
+              )}
+              
+              {selectedVisit.treatment && (
+                <>
+                  <Text style={styles.detailLabel}>Treatment:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.treatment}</Text>
+                </>
+              )}
+              
+              {selectedVisit.notes && (
+                <>
+                  <Text style={styles.detailLabel}>Notes:</Text>
+                  <Text style={styles.detailValue}>{selectedVisit.notes}</Text>
+                </>
+              )}
+            </View>
+          </ScrollView>
+        )}
+      </Modal>
+    </Portal>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <FlatList
@@ -365,7 +774,12 @@ export default function VisitsScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.sep} />}
-        ListHeaderComponent={StickyHeader}
+        ListHeaderComponent={
+          <>
+            {StickyHeader}
+            {renderSelectAllItem()}
+          </>
+        }
         ListHeaderComponentStyle={styles.headerShim}
         stickyHeaderIndices={[0]}
         ListEmptyComponent={
@@ -373,8 +787,8 @@ export default function VisitsScreen() {
             <View style={{ padding: 16 }}>
               <EmptyState
                 icon="assignment"
-                title="No visits"
-                description="Visit records will appear here as they are created."
+                title="No visits found"
+                description="Try adjusting your filters or search terms."
                 iconSize={48}
               />
             </View>
@@ -385,6 +799,7 @@ export default function VisitsScreen() {
         onEndReachedThreshold={0.3}
         onEndReached={loadMore}
       />
+      <VisitDetailModal />
     </SafeAreaView>
   );
 }
@@ -392,29 +807,165 @@ export default function VisitsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   listContent: { paddingBottom: 16 },
-  headerShim: { marginTop: -6 }, // tuck under orange bar
+  headerShim: { marginTop: -6 },
+  
+  // Header styles
   stickyHeader: {
     backgroundColor: '#fff',
     paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingTop: 8,
+    paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#e5e5e5',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  headerTextWrap: { marginLeft: 8, flex: 1 },
-  headerTitle: { fontSize: 16, fontWeight: 'bold' },
-  headerSub: { color: '#666', marginTop: 2 },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerTextWrap: { marginLeft: 12, flex: 1 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  headerSub: { color: '#666', marginTop: 2, fontSize: 12 },
 
-  controlsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
-  search: { marginRight: 8, height: 40 },
-  filterBtn: { height: 40, justifyContent: 'center', marginRight: 8 },
-  exportBtn: { height: 40, justifyContent: 'center', backgroundColor: '#FF9800' },
+  controlsRow: { 
+    marginBottom: 12,
+  },
+  search: { 
+    height: 44,
+    elevation: 1,
+  },
+  
+  filtersRow: {
+    marginBottom: 8,
+  },
+  filtersScroll: {
+    flexGrow: 0,
+  },
+  filterChip: {
+    marginRight: 8,
+    height: 32,
+  },
 
-  leftIcon: { marginRight: 8, marginTop: 2 },
-  metaText: { color: '#666' },
+  exportRow: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  exportBtn: { 
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 16,
+  },
 
-  sep: { height: StyleSheet.hairlineWidth, backgroundColor: '#e5e5e5' },
-  footerWrap: { paddingVertical: 16, alignItems: 'center' },
-  footerEndText: { color: '#888' },
+  // List item styles
+  selectAllContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  selectAllItem: {
+    flex: 1,
+    paddingVertical: 8,
+  },
+  
+  itemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  checkboxContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  listItem: {
+    flex: 1,
+    paddingVertical: 12,
+  },
+  selectedItem: {
+    backgroundColor: '#fff3e0',
+  },
+  leftIcon: { 
+    marginRight: 8, 
+    marginTop: 2,
+  },
+  metaText: { 
+    color: '#666',
+    fontSize: 12,
+  },
+
+  sep: { 
+    height: StyleSheet.hairlineWidth, 
+    backgroundColor: '#e5e5e5',
+    marginLeft: 56, // Account for checkbox space
+  },
+  footerWrap: { 
+    paddingVertical: 16, 
+    alignItems: 'center',
+  },
+  footerEndText: { 
+    color: '#888',
+    fontSize: 12,
+  },
+
+  // Modal styles
+  modalContainer: {
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 12,
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  modalContent: {
+    maxHeight: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalDivider: {
+    marginHorizontal: 20,
+    marginVertical: 8,
+  },
+  modalSection: {
+    padding: 20,
+    paddingTop: 12,
+    paddingBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 12,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
 });

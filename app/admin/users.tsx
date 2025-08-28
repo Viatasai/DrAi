@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, Button, List, ActivityIndicator } from 'react-native-paper';
+import { Text, Button, List, ActivityIndicator, Switch } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 
@@ -9,19 +9,23 @@ type TabKey = 'patients' | 'doctors';
 
 type Patient = {
   id: string;
+  auth_user_id: string;
   name: string | null;
   email: string | null;
   phone: string | null;
   created_at: string | null;
+  banned: boolean;
 };
 
 type FieldDoctor = {
   id: string;
+  auth_user_id: string;
   name: string | null;
   email: string | null;
   phone: string | null;
   specialization?: string | null;
   created_at: string | null;
+  banned: boolean;
 };
 
 const PAGE_SIZE = 20;
@@ -43,24 +47,38 @@ export default function UsersScreen() {
   const [doctorsLoading, setDoctorsLoading] = useState(true);
   const [doctorsRefreshing, setDoctorsRefreshing] = useState(false);
 
+  // Track toggle loading states
+  const [toggleLoading, setToggleLoading] = useState<Record<string, boolean>>({});
+
   const formatWhen = (iso?: string | null) => {
     if (!iso) return '';
     const d = new Date(iso);
     return d.toLocaleDateString();
   };
 
-  // -------- fetchers (paginated) --------
+  // -------- fetchers (paginated) with ban status --------
   const fetchPatientsPage = useCallback(async (page: number) => {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
     const { data, error } = await supabase
-      .from('patients')
-      .select('id, name, email, phone, created_at')
-      .order('created_at', { ascending: false })
+      .rpc('get_users_with_ban_status', { table_name: 'patients' })
       .range(from, to);
 
-    if (error) return { items: [] as Patient[], hasMore: false };
-    const items = (data ?? []) as Patient[];
+    if (error) {
+      console.error('Error fetching patients:', error);
+      return { items: [] as Patient[], hasMore: false };
+    }
+    
+    const items = (data ?? []).map(item => ({
+      id: item.id,
+      auth_user_id: item.auth_user_id,
+      name: item.name,
+      email: item.email,
+      phone: item.phone,
+      created_at: item.created_at,
+      banned: item.banned || false
+    })) as Patient[];
+    
     return { items, hasMore: items.length === PAGE_SIZE };
   }, []);
 
@@ -68,13 +86,25 @@ export default function UsersScreen() {
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
     const { data, error } = await supabase
-      .from('field_doctors')
-      .select('id, name, email, phone, created_at, specialization')
-      .order('created_at', { ascending: false })
+      .rpc('get_users_with_ban_status', { table_name: 'field_doctors' })
       .range(from, to);
 
-    if (error) return { items: [] as FieldDoctor[], hasMore: false };
-    const items = (data ?? []) as FieldDoctor[];
+    if (error) {
+      console.error('Error fetching doctors:', error);
+      return { items: [] as FieldDoctor[], hasMore: false };
+    }
+    
+    const items = (data ?? []).map(item => ({
+      id: item.id,
+      auth_user_id: item.auth_user_id,
+      name: item.name,
+      email: item.email,
+      phone: item.phone,
+      created_at: item.created_at,
+      specialization: item.specialization,
+      banned: item.banned || false
+    })) as FieldDoctor[];
+    
     return { items, hasMore: items.length === PAGE_SIZE };
   }, []);
 
@@ -139,6 +169,38 @@ export default function UsersScreen() {
     setDoctorsPage(next);
   }, [doctorsLoading, doctorsHasMore, doctorsPage, fetchDoctorsPage]);
 
+  const toggleBan = async (authUserId: string, currentBanStatus: boolean) => {
+    // Prevent multiple simultaneous toggles for the same user
+    if (toggleLoading[authUserId]) return;
+
+    try {
+      setToggleLoading(prev => ({ ...prev, [authUserId]: true }));
+      
+      const { error } = await supabase.rpc('toggle_user_ban', {
+        uid: authUserId,
+        ban: !currentBanStatus,
+      });
+      
+      if (error) throw error;
+
+      // Update local state
+      if (activeTab === 'patients') {
+        setPatients(prev =>
+          prev.map(u => (u.auth_user_id === authUserId ? { ...u, banned: !currentBanStatus } : u))
+        );
+      } else {
+        setDoctors(prev =>
+          prev.map(u => (u.auth_user_id === authUserId ? { ...u, banned: !currentBanStatus } : u))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to toggle ban', err);
+      // You might want to show a toast or alert here
+    } finally {
+      setToggleLoading(prev => ({ ...prev, [authUserId]: false }));
+    }
+  };
+
   // -------- sticky header (title + tabs), now snug under app bar --------
   const StickyHeader = useMemo(() => {
     return (
@@ -195,7 +257,22 @@ export default function UsersScreen() {
         item.phone ? ` • ${item.phone}` : '',
       ].join('')}
       left={() => <MaterialIcons name="person" size={20} color="#555" style={styles.leftIcon} />}
-      right={() => <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>}
+      right={() => (
+        <View style={styles.rightContainer}>
+          <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>
+          <View style={styles.banToggleContainer}>
+            <Text style={[styles.banLabel, item.banned && styles.banLabelActive]}>
+              {item.banned ? 'Banned' : 'Active'}
+            </Text>
+            <Switch
+              value={item.banned}
+              onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
+              disabled={toggleLoading[item.auth_user_id]}
+              style={styles.banSwitch}
+            />
+          </View>
+        </View>
+      )}
     />
   );
 
@@ -208,7 +285,22 @@ export default function UsersScreen() {
         item.specialization ? ` • ${item.specialization}` : '',
       ].join('')}
       left={() => <MaterialIcons name="medical-services" size={20} color="#555" style={styles.leftIcon} />}
-      right={() => <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>}
+      right={() => (
+        <View style={styles.rightContainer}>
+          <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>
+          <View style={styles.banToggleContainer}>
+            <Text style={[styles.banLabel, item.banned && styles.banLabelActive]}>
+              {item.banned ? 'Banned' : 'Active'}
+            </Text>
+            <Switch
+              value={item.banned}
+              onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
+              disabled={toggleLoading[item.auth_user_id]}
+              style={styles.banSwitch}
+            />
+          </View>
+        </View>
+      )}
     />
   );
 
@@ -293,7 +385,35 @@ const styles = StyleSheet.create({
   toggleBtn: { flex: 1, marginRight: 8 },
 
   leftIcon: { marginRight: 8, marginTop: 2 },
-  metaText: { color: '#666' },
+  metaText: { color: '#666', fontSize: 12 },
+
+  rightContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+
+  banToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+
+  banLabel: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginRight: 8,
+    minWidth: 50,
+    textAlign: 'right',
+  },
+
+  banLabelActive: {
+    color: '#f44336',
+  },
+
+  banSwitch: {
+    transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }],
+  },
 
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: '#e5e5e5' },
   footerWrap: { paddingVertical: 16, alignItems: 'center' },
