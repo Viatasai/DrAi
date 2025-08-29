@@ -339,8 +339,8 @@ export default function VisitsScreen() {
     const s = String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-
-  const shareCsv = async () => {
+  
+  const downloadCsv = async () => {
     try {
       const selectedVisits = items.filter(item => selectedItems.has(item.id));
       const header = [
@@ -359,7 +359,9 @@ export default function VisitsScreen() {
         'Notes',
         'Locality',
       ];
+      
       const lines = [header.join(',')];
+      
       for (const v of selectedVisits) {
         lines.push(
           [
@@ -380,13 +382,30 @@ export default function VisitsScreen() {
           ].map(escapeCsv).join(',')
         );
       }
+      
       const csv = lines.join('\n');
-      await Share.share({ 
-        title: `Visits Export (${selectedVisits.length} records)`, 
-        message: csv 
-      });
+      
+      // Create blob with CSV data
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      
+      // Create download link
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `visits_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+      
+      console.log(`CSV file downloaded with ${selectedVisits.length} records`);
     } catch (e) {
-      console.error('share csv error', e);
+      console.error('CSV download error', e);
     }
   };
 
@@ -523,7 +542,7 @@ export default function VisitsScreen() {
           <View style={styles.exportRow}>
             <Button
               mode="contained"
-              onPress={shareCsv}
+              onPress={downloadCsv}
               style={styles.exportBtn}
               icon="download"
             >
