@@ -69,7 +69,7 @@ export default function UsersScreen() {
       return { items: [] as Patient[], hasMore: false };
     }
     
-    const items = (data ?? []).map(item => ({
+    const items = (data ?? []).map((item: { id: any; auth_user_id: any; name: any; email: any; phone: any; created_at: any; banned: any; }) => ({
       id: item.id,
       auth_user_id: item.auth_user_id,
       name: item.name,
@@ -94,7 +94,7 @@ export default function UsersScreen() {
       return { items: [] as FieldDoctor[], hasMore: false };
     }
     
-    const items = (data ?? []).map(item => ({
+    const items = (data ?? []).map((item: { id: any; auth_user_id: any; name: any; email: any; phone: any; created_at: any; specialization: any; banned: any; }) => ({
       id: item.id,
       auth_user_id: item.auth_user_id,
       name: item.name,
