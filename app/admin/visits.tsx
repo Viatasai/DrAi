@@ -1,24 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Share, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl, Share, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Text,
-  Button,
-  List,
-  ActivityIndicator,
-  Searchbar,
-  Menu,
-  Checkbox,
-  Modal,
-  Portal,
-  Divider,
-  Chip,
-  IconButton,
-} from 'react-native-paper';
+import {Text, Button, List, ActivityIndicator, Searchbar, Menu, Checkbox, Modal, Portal,
+  Divider, Chip, IconButton,} from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../lib/supabase';
 import EmptyState from '~/components/EmptyState';
+import { DatePickerModal } from 'react-native-paper-dates';
 
 type VisitTypeFilter = 'all' | 'in_person' | 'self_recorded' | 'virtual';
 type SortOption = 'date_desc' | 'date_asc' | 'type_asc' | 'type_desc';
@@ -60,9 +49,44 @@ function formatWhen(iso?: string | null): string {
   })}`;
 }
 
+function formatChipDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
+/** ---------- visible checkbox as icons ---------- */
+const CheckBoxIcon = ({
+  checked,
+  indeterminate,
+  onPress,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  onPress: () => void;
+}) => (
+  <Pressable
+    onPress={onPress}
+    hitSlop={10}
+    style={styles.cbWrap}
+    accessibilityRole="checkbox"
+    accessibilityState={{ checked: indeterminate ? 'mixed' : checked }}
+  >
+    <MaterialIcons
+      name={
+        indeterminate
+          ? 'indeterminate-check-box'
+          : checked
+          ? 'check-box'
+          : 'check-box-outline-blank'
+      }
+      size={22}
+      color={checked ? '#FF9800' : '#8E8E8E'}
+    />
+  </Pressable>
+);
 
 export default function VisitsScreen() {
   // header controls
@@ -72,13 +96,14 @@ export default function VisitsScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('date_desc');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
-  
-  // menu states
+
+  // calendar
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // menus
   const [regionMenuVisible, setRegionMenuVisible] = useState(false);
   const [typeMenuVisible, setTypeMenuVisible] = useState(false);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   // list state
   const [items, setItems] = useState<VisitRow[]>([]);
@@ -102,7 +127,7 @@ export default function VisitsScreen() {
       const l = locality(v.location);
       if (l) s.add(l);
     }
-    return ['All regions', ...Array.from(s).sort()];
+    return ['All Regions', ...Array.from(s).sort()];
   }, [items]);
 
   // Selection handlers
@@ -115,21 +140,15 @@ export default function VisitsScreen() {
   };
 
   const toggleSelectItem = (id: string) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedItems(newSelected);
+    const next = new Set(selectedItems);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedItems(next);
   };
 
-  // Update export button visibility
   useEffect(() => {
     setShowExportButton(selectedItems.size > 0);
   }, [selectedItems]);
 
-  // Clear selection when filters change
   useEffect(() => {
     setSelectedItems(new Set());
   }, [visitType, region, search, sortBy, startDate, endDate]);
@@ -144,17 +163,15 @@ export default function VisitsScreen() {
   };
 
   const applyRegion = (q: any) => {
-    if (!region || region === 'All regions') return q;
+    if (!region || region === 'All Regions') return q;
     return q.filter('location->>locality', 'eq', region);
   };
 
   const applyDateRange = (q: any) => {
-    if (startDate) {
-      q = q.gte('created_at', formatDate(startDate));
-    }
+    if (startDate) q = q.gte('created_at', formatDate(startDate));
     if (endDate) {
-      const endDateStr = formatDate(new Date(endDate.getTime() + 24 * 60 * 60 * 1000)); // Add one day
-      q = q.lt('created_at', endDateStr);
+      const endPlusOne = new Date(endDate.getTime() + 24 * 60 * 60 * 1000);
+      q = q.lt('created_at', formatDate(endPlusOne));
     }
     return q;
   };
@@ -172,10 +189,8 @@ export default function VisitsScreen() {
     }
   };
 
-  // Remove server-side search - we'll do all filtering on frontend
-  const applySearch = (q: any) => {
-    return q; // No server-side search filtering
-  };
+  // keep search client-side to avoid complex OR queries
+  const applySearch = (q: any) => q;
 
   const baseSelect = `
     id, created_at, visit_type, diagnosis, symptoms, location, patient_id,
@@ -188,11 +203,7 @@ export default function VisitsScreen() {
       const from = p * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      let q = supabase
-        .from('visits')
-        .select(baseSelect)
-        .range(from, to);
-
+      let q = supabase.from('visits').select(baseSelect).range(from, to);
       q = applySorting(applyVisitType(applyRegion(applyDateRange(applySearch(q)))));
 
       const { data, error } = await q;
@@ -202,15 +213,10 @@ export default function VisitsScreen() {
       }
       let rows = (data ?? []).map((row: any) => ({
         ...row,
-        patients: Array.isArray(row.patients)
-          ? row.patients[0] ?? null
-          : row.patients ?? null,
+        patients: Array.isArray(row.patients) ? row.patients[0] ?? null : row.patients ?? null,
       })) as VisitRow[];
 
-      // robust fallback join if nested 'patients' is missing
-      const idsNeedingLookup = rows
-        .filter(r => !r.patients && r.patient_id)
-        .map(r => r.patient_id!) as string[];
+      const idsNeedingLookup = rows.filter(r => !r.patients && r.patient_id).map(r => r.patient_id!) as string[];
       if (idsNeedingLookup.length) {
         const uniq = Array.from(new Set(idsNeedingLookup));
         const { data: pats } = await supabase
@@ -218,40 +224,27 @@ export default function VisitsScreen() {
           .select('id, name, email, phone, age, gender')
           .in('id', uniq);
         const map = new Map((pats || []).map(p => [p.id, p]));
-        rows = rows.map(r =>
-          r.patients || !r.patient_id ? r : { ...r, patients: map.get(r.patient_id) as any }
-        );
+        rows = rows.map(r => (r.patients || !r.patient_id ? r : { ...r, patients: map.get(r.patient_id) as any }));
       }
 
-      // Client-side filtering for all search criteria
-      let filteredRows = rows;
-      
-      // Apply search filter
+      // Client search & filters (patient name/email/phone too)
       const needle = search.trim().toLowerCase();
+      let filtered = rows;
+
       if (needle) {
-        filteredRows = filteredRows.filter(r => {
+        filtered = filtered.filter(r => {
           const p = r.patients;
-          const searchFields = [
-            // Patient fields
+          const hay = [
             p?.name, p?.email, p?.phone,
-            // Visit fields
             r.diagnosis, r.symptoms, r.notes, r.doctor_name, r.treatment,
-            r.visit_type,
-            // Location
-            locality(r.location)
-          ];
-          
-          const haystack = searchFields
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
-          return haystack.includes(needle);
+            r.visit_type, locality(r.location),
+          ].filter(Boolean).join(' ').toLowerCase();
+          return hay.includes(needle);
         });
       }
 
-      // Apply visit type filter
       if (visitType !== 'all') {
-        filteredRows = filteredRows.filter(r => {
+        filtered = filtered.filter(r => {
           if (visitType === 'in_person') return r.visit_type === 'in_person';
           if (visitType === 'self_recorded') return r.visit_type === 'self_recorded';
           if (visitType === 'virtual') return ['chat', 'virtual_consultation', 'virtual'].includes(r.visit_type || '');
@@ -259,24 +252,21 @@ export default function VisitsScreen() {
         });
       }
 
-      // Apply region filter
-      if (region && region !== 'All regions') {
-        filteredRows = filteredRows.filter(r => locality(r.location) === region);
+      if (region && region !== 'All Regions') {
+        filtered = filtered.filter(r => locality(r.location) === region);
       }
 
-      // Apply date range filter
       if (startDate || endDate) {
-        filteredRows = filteredRows.filter(r => {
+        filtered = filtered.filter(r => {
           if (!r.created_at) return false;
-          const visitDate = new Date(r.created_at);
-          if (startDate && visitDate < startDate) return false;
-          if (endDate && visitDate > new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) return false;
+          const d = new Date(r.created_at);
+          if (startDate && d < startDate) return false;
+          if (endDate && d > new Date(endDate.getTime() + 24 * 60 * 60 * 1000)) return false;
           return true;
         });
       }
 
-      // Apply sorting
-      filteredRows.sort((a, b) => {
+      filtered.sort((a, b) => {
         switch (sortBy) {
           case 'date_asc':
             return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
@@ -291,16 +281,8 @@ export default function VisitsScreen() {
         }
       });
 
-      // Apply pagination
-      const startIndex = p * PAGE_SIZE;
-      const endIndex = startIndex + PAGE_SIZE;
-      const paginatedRows = filteredRows.slice(startIndex, endIndex);
-
-      return { 
-        rows: paginatedRows, 
-        more: endIndex < filteredRows.length,
-        totalFiltered: filteredRows.length 
-      };
+      // NOTE: server already paginated via .range; no extra slicing
+      return { rows: filtered, more: (data?.length ?? 0) === PAGE_SIZE };
     },
     [visitType, region, search, sortBy, startDate, endDate]
   );
@@ -333,13 +315,14 @@ export default function VisitsScreen() {
     setPage(next);
   }, [loading, hasMore, page, fetchPage]);
 
-  // ---------- CSV share ----------
+  // ---------- CSV share helpers ----------
   const escapeCsv = (v: any) => {
     if (v === null || v === undefined) return '';
     const s = String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  
+
+  // ⬇️ your earlier change: download selected rows to CSV (web), Share fallback (native)
   const downloadCsv = async () => {
     try {
       const selectedVisits = items.filter(item => selectedItems.has(item.id));
@@ -359,9 +342,9 @@ export default function VisitsScreen() {
         'Notes',
         'Locality',
       ];
-      
+
       const lines = [header.join(',')];
-      
+
       for (const v of selectedVisits) {
         lines.push(
           [
@@ -371,7 +354,7 @@ export default function VisitsScreen() {
             v.patients?.name || '',
             v.patients?.email || '',
             v.patients?.phone || '',
-            v.patients?.age || '',
+            v.patients?.age ?? '',
             v.patients?.gender || '',
             v.doctor_name || '',
             v.diagnosis || '',
@@ -382,53 +365,52 @@ export default function VisitsScreen() {
           ].map(escapeCsv).join(',')
         );
       }
-      
+
       const csv = lines.join('\n');
-      
-      // Create blob with CSV data
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      
-      // Create download link
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `visits_export_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up the URL object
-      URL.revokeObjectURL(url);
-      
-      console.log(`CSV file downloaded with ${selectedVisits.length} records`);
+
+      // Web download (matches your previous commit)
+      if (typeof document !== 'undefined') {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `visits_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        console.log(`CSV file downloaded with ${selectedVisits.length} records`);
+      } else {
+        // Native fallback – share the CSV text
+        await Share.share({
+          title: `Visits Export (${selectedVisits.length} records)`,
+          message: csv,
+        });
+      }
     } catch (e) {
       console.error('CSV download error', e);
     }
   };
 
+  // ---------- date helpers ----------
   const clearDateFilter = () => {
     setStartDate(null);
     setEndDate(null);
   };
 
-  const getSortLabel = (sort: SortOption) => {
-    switch (sort) {
-      case 'date_asc': return 'Date ↑';
-      case 'date_desc': return 'Date ↓';
-      case 'type_asc': return 'Type ↑';
-      case 'type_desc': return 'Type ↓';
-      default: return 'Sort';
-    }
-  };
+  const dateChipLabel = useMemo(() => {
+    if (startDate && endDate) return `${formatChipDate(startDate)} – ${formatChipDate(endDate)}`;
+    if (startDate) return `Since ${formatChipDate(startDate)}`;
+    if (endDate) return `Until ${formatChipDate(endDate)}`;
+    return 'All Dates';
+  }, [startDate, endDate]);
 
+  // ---------- visit modal ----------
   const openVisitModal = (visit: VisitRow) => {
     setSelectedVisit(visit);
     setModalVisible(true);
   };
-
   const closeVisitModal = () => {
     setModalVisible(false);
     setSelectedVisit(null);
@@ -440,7 +422,7 @@ export default function VisitsScreen() {
       <View style={styles.stickyHeader}>
         <View style={styles.headerRow}>
           <MaterialIcons name="assignment" size={24} color="#FF9800" />
-          <View style={styles.headerTextWrap}>
+        <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Visits</Text>
             <Text style={styles.headerSub}>
               {items.length} records {selectedItems.size > 0 && `• ${selectedItems.size} selected`}
@@ -467,8 +449,8 @@ export default function VisitsScreen() {
                 <Chip
                   mode={visitType !== 'all' ? 'flat' : 'outlined'}
                   onPress={() => setTypeMenuVisible(true)}
-                  icon="filter-list"
                   style={styles.filterChip}
+                  icon={({ size, color }) => <MaterialIcons name="tune" size={size} color={color} />}
                 >
                   {visitType === 'all' ? 'All Types' : visitType.replace('_', ' ')}
                 </Chip>
@@ -487,8 +469,8 @@ export default function VisitsScreen() {
                 <Chip
                   mode={region ? 'flat' : 'outlined'}
                   onPress={() => setRegionMenuVisible(true)}
-                  icon="place"
                   style={styles.filterChip}
+                  icon={({ size, color }) => <MaterialIcons name="place" size={size} color={color} />}
                 >
                   {region || 'All Regions'}
                 </Chip>
@@ -498,7 +480,7 @@ export default function VisitsScreen() {
                 <Menu.Item
                   key={r}
                   onPress={() => {
-                    setRegion(r === 'All regions' ? null : r);
+                    setRegion(r === 'All Regions' ? null : r);
                     setRegionMenuVisible(false);
                   }}
                   title={r}
@@ -513,27 +495,36 @@ export default function VisitsScreen() {
                 <Chip
                   mode="outlined"
                   onPress={() => setSortMenuVisible(true)}
-                  icon="sort"
                   style={styles.filterChip}
+                  icon={({ size, color }) => <MaterialIcons name="sort" size={size} color={color} />}
                 >
-                  {getSortLabel(sortBy)}
+                  {(() => {
+                    switch (sortBy) {
+                      case 'date_asc': return 'Date ↑';
+                      case 'date_desc': return 'Date ↓';
+                      case 'type_asc': return 'Type A–Z';
+                      case 'type_desc': return 'Type Z–A';
+                      default: return 'Date ↓';
+                    }
+                  })()}
                 </Chip>
               }
             >
               <Menu.Item onPress={() => { setSortBy('date_desc'); setSortMenuVisible(false); }} title="Latest First" />
               <Menu.Item onPress={() => { setSortBy('date_asc'); setSortMenuVisible(false); }} title="Oldest First" />
-              <Menu.Item onPress={() => { setSortBy('type_asc'); setSortMenuVisible(false); }} title="Type A-Z" />
-              <Menu.Item onPress={() => { setSortBy('type_desc'); setSortMenuVisible(false); }} title="Type Z-A" />
+              <Menu.Item onPress={() => { setSortBy('type_asc'); setSortMenuVisible(false); }} title="Type A–Z" />
+              <Menu.Item onPress={() => { setSortBy('type_desc'); setSortMenuVisible(false); }} title="Type Z–A" />
             </Menu>
 
+            {/* Calendar-style date range selector */}
             <Chip
               mode={startDate || endDate ? 'flat' : 'outlined'}
-              onPress={() => setShowStartDatePicker(true)}
-              icon="calendar-range"
+              onPress={() => setDatePickerOpen(true)}
               style={styles.filterChip}
               onClose={startDate || endDate ? clearDateFilter : undefined}
+              icon={({ size, color }) => <MaterialIcons name="calendar-today" size={size} color={color} />}
             >
-              {startDate || endDate ? 'Date Range' : 'All Dates'}
+              {dateChipLabel}
             </Chip>
           </ScrollView>
         </View>
@@ -550,91 +541,44 @@ export default function VisitsScreen() {
             </Button>
           </View>
         )}
-
-        {/* Date Pickers */}
-        {showStartDatePicker && (
-          <DateTimePicker
-            value={startDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              setShowStartDatePicker(false);
-              if (selectedDate) {
-                setStartDate(selectedDate);
-                if (!endDate) {
-                  setTimeout(() => setShowEndDatePicker(true), 100);
-                }
-              }
-            }}
-          />
-        )}
-        
-        {showEndDatePicker && (
-          <DateTimePicker
-            value={endDate || new Date()}
-            mode="date"
-            display="default"
-            minimumDate={startDate || undefined}
-            onChange={(event, selectedDate) => {
-              setShowEndDatePicker(false);
-              if (selectedDate) {
-                setEndDate(selectedDate);
-              }
-            }}
-          />
-        )}
       </View>
     ),
-    [search, region, regions, regionMenuVisible, typeMenuVisible, sortMenuVisible, visitType, sortBy, selectedItems.size, showExportButton, startDate, endDate, items.length]
+    [search, region, regions, regionMenuVisible, typeMenuVisible, sortMenuVisible, visitType, sortBy, selectedItems.size, showExportButton, startDate, endDate, dateChipLabel, items.length]
   );
 
   // ---------- list ----------
-  const renderItem = ({ item, index }: { item: VisitRow; index: number }) => {
+  const renderItem = ({ item }: { item: VisitRow }) => {
     const p = item.patients;
-    const who =
-      p?.name || p?.email || p?.phone
-        ? [p?.name, p?.email, p?.phone].filter(Boolean).join(' • ')
-        : 'Unknown patient';
+    const who = p?.name || p?.email || p?.phone
+      ? [p?.name, p?.email, p?.phone].filter(Boolean).join(' • ')
+      : 'Unknown patient';
 
     const line2 = [
       item.diagnosis?.trim() || item.symptoms?.trim() || '(no notes)',
       item.visit_type ? ` • ${item.visit_type}` : '',
       locality(item.location) ? ` • ${locality(item.location)}` : '',
-    ]
-      .join('')
-      .trim();
+    ].join('').trim();
 
     const isSelected = selectedItems.has(item.id);
-    const isSelectAll = index === 0;
 
     return (
       <View style={styles.itemContainer}>
         <View style={styles.checkboxContainer}>
-          {isSelectAll ? (
-            <Checkbox
-              status={
-                selectedItems.size === 0 ? 'unchecked' : 
-                selectedItems.size === items.length ? 'checked' : 'indeterminate'
-              }
-              onPress={toggleSelectAll}
-            />
-          ) : (
-            <Checkbox
-              status={isSelected ? 'checked' : 'unchecked'}
-              onPress={() => toggleSelectItem(item.id)}
-            />
-          )}
+          <CheckBoxIcon
+            checked={isSelected}
+            onPress={() => toggleSelectItem(item.id)}
+          />
         </View>
         <List.Item
           style={[styles.listItem, isSelected && styles.selectedItem]}
           title={who}
           description={line2}
           left={() => (
-            <MaterialIcons 
-              name="person" 
-              size={20} 
-              color={isSelected ? "#FF9800" : "#555"} 
-              style={styles.leftIcon} 
+            <MaterialIcons
+              name="person"
+              size={20}
+              color={isSelected ? "#FF9800" : "#555"}
+              style={styles.leftIcon}
             />
           )}
           right={() => <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>}
@@ -646,15 +590,12 @@ export default function VisitsScreen() {
 
   const renderSelectAllItem = () => {
     if (items.length === 0) return null;
-    
     return (
       <View style={styles.selectAllContainer}>
         <View style={styles.checkboxContainer}>
-          <Checkbox
-            status={
-              selectedItems.size === 0 ? 'unchecked' : 
-              selectedItems.size === items.length ? 'checked' : 'indeterminate'
-            }
+          <CheckBoxIcon
+            checked={selectedItems.size === items.length && items.length > 0}
+            indeterminate={selectedItems.size > 0 && selectedItems.size < items.length}
             onPress={toggleSelectAll}
           />
         </View>
@@ -663,11 +604,11 @@ export default function VisitsScreen() {
           title="Select All"
           description={`${selectedItems.size} of ${items.length} selected`}
           left={() => (
-            <MaterialIcons 
-              name="select-all" 
-              size={20} 
-              color="#FF9800" 
-              style={styles.leftIcon} 
+            <MaterialIcons
+              name="done-all"
+              size={20}
+              color="#FF9800"
+              style={styles.leftIcon}
             />
           )}
         />
@@ -693,91 +634,60 @@ export default function VisitsScreen() {
               <Text style={styles.modalTitle}>Visit Details</Text>
               <IconButton icon="close" onPress={closeVisitModal} />
             </View>
-            
             <Divider style={styles.modalDivider} />
-            
             {/* Patient Info */}
             <View style={styles.modalSection}>
               <Text style={styles.sectionTitle}>Patient Information</Text>
               <Text style={styles.detailLabel}>Name:</Text>
               <Text style={styles.detailValue}>{selectedVisit.patients?.name || 'Not provided'}</Text>
-              
               <Text style={styles.detailLabel}>Email:</Text>
               <Text style={styles.detailValue}>{selectedVisit.patients?.email || 'Not provided'}</Text>
-              
               <Text style={styles.detailLabel}>Phone:</Text>
               <Text style={styles.detailValue}>{selectedVisit.patients?.phone || 'Not provided'}</Text>
-              
-              {selectedVisit.patients?.age && (
-                <>
-                  <Text style={styles.detailLabel}>Age:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.patients.age}</Text>
-                </>
-              )}
-              
-              {selectedVisit.patients?.gender && (
-                <>
-                  <Text style={styles.detailLabel}>Gender:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.patients.gender}</Text>
-                </>
-              )}
+              {selectedVisit.patients?.age && (<>
+                <Text style={styles.detailLabel}>Age:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.patients.age}</Text>
+              </>)}
+              {selectedVisit.patients?.gender && (<>
+                <Text style={styles.detailLabel}>Gender:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.patients.gender}</Text>
+              </>)}
             </View>
-
             <Divider style={styles.modalDivider} />
-
             {/* Visit Info */}
             <View style={styles.modalSection}>
               <Text style={styles.sectionTitle}>Visit Information</Text>
               <Text style={styles.detailLabel}>Date & Time:</Text>
               <Text style={styles.detailValue}>{formatWhen(selectedVisit.created_at)}</Text>
-              
               <Text style={styles.detailLabel}>Visit Type:</Text>
               <Text style={styles.detailValue}>{selectedVisit.visit_type || 'Not specified'}</Text>
-              
               <Text style={styles.detailLabel}>Location:</Text>
               <Text style={styles.detailValue}>{locality(selectedVisit.location) || 'Not provided'}</Text>
-              
-              {selectedVisit.doctor_name && (
-                <>
-                  <Text style={styles.detailLabel}>Doctor:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.doctor_name}</Text>
-                </>
-              )}
+              {selectedVisit.doctor_name && (<>
+                <Text style={styles.detailLabel}>Doctor:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.doctor_name}</Text>
+              </>)}
             </View>
-
             <Divider style={styles.modalDivider} />
-
             {/* Medical Info */}
             <View style={styles.modalSection}>
               <Text style={styles.sectionTitle}>Medical Information</Text>
-              
-              {selectedVisit.diagnosis && (
-                <>
-                  <Text style={styles.detailLabel}>Diagnosis:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.diagnosis}</Text>
-                </>
-              )}
-              
-              {selectedVisit.symptoms && (
-                <>
-                  <Text style={styles.detailLabel}>Symptoms:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.symptoms}</Text>
-                </>
-              )}
-              
-              {selectedVisit.treatment && (
-                <>
-                  <Text style={styles.detailLabel}>Treatment:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.treatment}</Text>
-                </>
-              )}
-              
-              {selectedVisit.notes && (
-                <>
-                  <Text style={styles.detailLabel}>Notes:</Text>
-                  <Text style={styles.detailValue}>{selectedVisit.notes}</Text>
-                </>
-              )}
+              {selectedVisit.diagnosis && (<>
+                <Text style={styles.detailLabel}>Diagnosis:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.diagnosis}</Text>
+              </>)}
+              {selectedVisit.symptoms && (<>
+                <Text style={styles.detailLabel}>Symptoms:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.symptoms}</Text>
+              </>)}
+              {selectedVisit.treatment && (<>
+                <Text style={styles.detailLabel}>Treatment:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.treatment}</Text>
+              </>)}
+              {selectedVisit.notes && (<>
+                <Text style={styles.detailLabel}>Notes:</Text>
+                <Text style={styles.detailValue}>{selectedVisit.notes}</Text>
+              </>)}
             </View>
           </ScrollView>
         )}
@@ -818,7 +728,25 @@ export default function VisitsScreen() {
         onEndReachedThreshold={0.3}
         onEndReached={loadMore}
       />
+
+      {/* Visit details modal */}
       <VisitDetailModal />
+
+      {/* Calendar-style date range picker modal */}
+      <DatePickerModal
+        mode="range"
+        visible={datePickerOpen}
+        onDismiss={() => setDatePickerOpen(false)}
+        startDate={startDate ?? undefined}
+        endDate={endDate ?? undefined}
+        onConfirm={({ startDate: s, endDate: e }) => {
+          setDatePickerOpen(false);
+          setStartDate(s ?? null);
+          setEndDate(e ?? null);
+        }}
+        saveLabel="Apply"
+        locale={Intl.DateTimeFormat().resolvedOptions().locale}
+      />
     </SafeAreaView>
   );
 }
@@ -827,7 +755,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   listContent: { paddingBottom: 16 },
   headerShim: { marginTop: -6 },
-  
+
   // Header styles
   stickyHeader: {
     backgroundColor: '#fff',
@@ -842,42 +770,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
-  headerRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    marginBottom: 12,
-  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   headerTextWrap: { marginLeft: 12, flex: 1 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   headerSub: { color: '#666', marginTop: 2, fontSize: 12 },
 
-  controlsRow: { 
-    marginBottom: 12,
-  },
-  search: { 
-    height: 44,
-    elevation: 1,
-  },
-  
-  filtersRow: {
-    marginBottom: 8,
-  },
-  filtersScroll: {
-    flexGrow: 0,
-  },
-  filterChip: {
-    marginRight: 8,
-    height: 32,
-  },
+  controlsRow: { marginBottom: 12 },
+  search: { height: 44, elevation: 1 },
 
-  exportRow: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  exportBtn: { 
-    backgroundColor: '#FF9800',
-    paddingHorizontal: 16,
-  },
+  filtersRow: { marginBottom: 8 },
+  filtersScroll: { flexGrow: 0 },
+  filterChip: { marginRight: 8, height: 32 },
+
+  exportRow: { marginTop: 12, alignItems: 'center' },
+  exportBtn: { backgroundColor: '#FF9800', paddingHorizontal: 16 },
 
   // List item styles
   selectAllContainer: {
@@ -887,49 +793,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e9ecef',
   },
-  selectAllItem: {
-    flex: 1,
-    paddingVertical: 8,
-  },
-  
-  itemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  listItem: {
-    flex: 1,
-    paddingVertical: 12,
-  },
-  selectedItem: {
-    backgroundColor: '#fff3e0',
-  },
-  leftIcon: { 
-    marginRight: 8, 
-    marginTop: 2,
-  },
-  metaText: { 
-    color: '#666',
-    fontSize: 12,
-  },
+  selectAllItem: { flex: 1, paddingVertical: 8 },
 
-  sep: { 
-    height: StyleSheet.hairlineWidth, 
-    backgroundColor: '#e5e5e5',
-    marginLeft: 56, // Account for checkbox space
-  },
-  footerWrap: { 
-    paddingVertical: 16, 
-    alignItems: 'center',
-  },
-  footerEndText: { 
-    color: '#888',
-    fontSize: 12,
-  },
+  itemContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  checkboxContainer: { paddingHorizontal: 12, paddingVertical: 8 },
+  listItem: { flex: 1, paddingVertical: 12 },
+  selectedItem: { backgroundColor: '#fff3e0' },
+  leftIcon: { marginRight: 8, marginTop: 2 },
+  metaText: { color: '#666', fontSize: 12 },
+
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: '#e5e5e5', marginLeft: 56 },
+  footerWrap: { paddingVertical: 16, alignItems: 'center' },
+  footerEndText: { color: '#888', fontSize: 12 },
 
   // Modal styles
   modalContainer: {
@@ -943,48 +818,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  modalContent: {
-    maxHeight: '100%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  modalContent: { maxHeight: '100%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingBottom: 12 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  modalDivider: { marginHorizontal: 20, marginVertical: 8 },
+  modalSection: { padding: 20, paddingTop: 12, paddingBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#FF9800', marginBottom: 12 },
+  detailLabel: { fontSize: 12, color: '#666', marginTop: 8, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  detailValue: { fontSize: 16, color: '#333', marginBottom: 4, lineHeight: 22 },
+
+  // tap area for checkbox icons
+  cbWrap: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-    padding: 20,
-    paddingBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalDivider: {
-    marginHorizontal: 20,
-    marginVertical: 8,
-  },
-  modalSection: {
-    padding: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FF9800',
-    marginBottom: 12,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 8,
-    marginBottom: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 4,
-    lineHeight: 22,
+    justifyContent: 'center',
   },
 });
