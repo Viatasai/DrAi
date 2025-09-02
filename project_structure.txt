@@ -1,0 +1,182 @@
+.
+├── android
+│   ├── app
+│   │   ├── build.gradle
+│   │   ├── debug.keystore
+│   │   ├── proguard-rules.pro
+│   │   └── src
+│   │       ├── debug
+│   │       │   └── AndroidManifest.xml
+│   │       └── main
+│   │           ├── AndroidManifest.xml
+│   │           ├── java
+│   │           │   └── com
+│   │           │       └── niting
+│   │           │           └── HealthcareApp
+│   │           │               ├── MainActivity.kt
+│   │           │               └── MainApplication.kt
+│   │           └── res
+│   │               ├── drawable
+│   │               │   ├── ic_launcher_background.xml
+│   │               │   └── rn_edit_text_material.xml
+│   │               ├── drawable-hdpi
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-mdpi
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xhdpi
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xxhdpi
+│   │               │   └── splashscreen_logo.png
+│   │               ├── drawable-xxxhdpi
+│   │               │   └── splashscreen_logo.png
+│   │               ├── mipmap-anydpi-v26
+│   │               │   ├── ic_launcher.xml
+│   │               │   └── ic_launcher_round.xml
+│   │               ├── mipmap-hdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-mdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xxhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── mipmap-xxxhdpi
+│   │               │   ├── ic_launcher.webp
+│   │               │   ├── ic_launcher_foreground.webp
+│   │               │   └── ic_launcher_round.webp
+│   │               ├── values
+│   │               │   ├── colors.xml
+│   │               │   ├── strings.xml
+│   │               │   └── styles.xml
+│   │               └── values-night
+│   │                   └── colors.xml
+│   ├── build.gradle
+│   ├── gradle
+│   │   └── wrapper
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   ├── gradle.properties
+│   ├── gradlew
+│   ├── gradlew.bat
+│   └── settings.gradle
+├── app
+│   ├── _layout.tsx
+│   ├── admin
+│   │   ├── _layout.tsx
+│   │   └── index.tsx
+│   ├── auth
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx
+│   │   ├── login.tsx
+│   │   ├── role-selection.tsx
+│   │   └── signup.tsx
+│   ├── doctor
+│   │   ├── _layout.tsx
+│   │   ├── ai-chat-room.tsx
+│   │   ├── edit-visit.tsx
+│   │   ├── index.tsx
+│   │   ├── patient-details.tsx
+│   │   ├── patient-search.tsx
+│   │   ├── profile.tsx
+│   │   └── visit-form.tsx
+│   ├── index.tsx
+│   └── patient
+│       ├── AddVitals.tsx
+│       ├── _layout.tsx
+│       ├── chat.tsx
+│       ├── edit-visit.tsx
+│       ├── history.tsx
+│       ├── index.tsx
+│       ├── prescriptions.tsx
+│       ├── profile.tsx
+│       └── trends.tsx
+├── app.json
+├── assets
+│   ├── adaptive-icon.png
+│   ├── favicon.png
+│   ├── icon.png
+│   ├── logo.png
+│   └── splash-icon.png
+├── components
+│   ├── Calender.tsx
+│   ├── ChatBubble.tsx
+│   ├── EmptyState.tsx
+│   ├── HealthTrendsComponent.tsx
+│   ├── Loader.tsx
+│   ├── PatientData.tsx
+│   ├── StatsCard.tsx
+│   ├── TrendChart.tsx
+│   ├── VisitCard.tsx
+│   ├── VitalSignsCard.tsx
+│   └── input
+│       └── cleanTextInput.tsx
+├── contexts
+│   └── AuthContext.tsx
+├── database_schema_update.sql
+├── demoCreds.txt
+├── ios
+│   ├── HealthcareApp
+│   │   ├── AppDelegate.swift
+│   │   ├── HealthcareApp-Bridging-Header.h
+│   │   ├── HealthcareApp.entitlements
+│   │   ├── Images.xcassets
+│   │   │   ├── AppIcon.appiconset
+│   │   │   │   ├── App-Icon-1024x1024@1x.png
+│   │   │   │   └── Contents.json
+│   │   │   ├── Contents.json
+│   │   │   ├── SplashScreenBackground.colorset
+│   │   │   │   └── Contents.json
+│   │   │   └── SplashScreenLogo.imageset
+│   │   │       ├── Contents.json
+│   │   │       ├── image.png
+│   │   │       ├── image@2x.png
+│   │   │       └── image@3x.png
+│   │   ├── Info.plist
+│   │   ├── PrivacyInfo.xcprivacy
+│   │   ├── SplashScreen.storyboard
+│   │   └── Supporting
+│   │       └── Expo.plist
+│   ├── HealthcareApp.xcodeproj
+│   │   ├── project.pbxproj
+│   │   └── xcshareddata
+│   │       └── xcschemes
+│   │           └── HealthcareApp.xcscheme
+│   ├── HealthcareApp.xcworkspace
+│   │   └── contents.xcworkspacedata
+│   ├── Podfile
+│   ├── Podfile.lock
+│   └── Podfile.properties.json
+├── lib
+│   └── supabase.ts
+├── package-lock.json
+├── package.json
+├── project_structure.txt
+├── supabase
+│   ├── config.toml
+│   ├── functions
+│   │   ├── chat-history
+│   │   │   └── index.ts
+│   │   ├── create-user
+│   │   │   └── index.ts
+│   │   ├── gemini-chat
+│   │   │   └── index.ts
+│   │   ├── generate-embeddings
+│   │   │   └── index.ts
+│   │   └── similarity-search
+│   │       └── index.ts
+│   ├── package-lock.json
+│   └── package.json
+├── tsconfig.json
+└── utils
+    ├── location.ts
+    └── toast.tsx
+
+56 directories, 124 files
