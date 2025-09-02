@@ -34,7 +34,7 @@ export default function AdminProfileScreen() {
     () => (
       <View style={styles.stickyHeader}>
         <View style={styles.headerRow}>
-          <MaterialIcons name="admin-panel-settings" size={20} color="#FF9800" />
+          <MaterialIcons name="admin-panel-settings" size={20} color="#4C51BF" />
           <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Profile</Text>
             <Text style={styles.headerSub}>System Administrator</Text>
@@ -53,7 +53,7 @@ export default function AdminProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.headerShim} />
-        {StickyHeader}
+        {/* {StickyHeader} */}
 
         {/* Details */}
         <Card style={styles.card}>
@@ -133,5 +133,5 @@ const styles = StyleSheet.create({
   label: { color: '#666' },
   value: { color: '#333', fontWeight: '600', marginLeft: 8, flexShrink: 1, textAlign: 'right' },
 
-  signOutBtn: { backgroundColor: '#FF5722' },
+  signOutBtn: { backgroundColor: '#4C51BF' },
 })

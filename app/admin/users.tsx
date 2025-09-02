@@ -206,7 +206,7 @@ export default function UsersScreen() {
     return (
       <View style={styles.stickyHeader}>
         <View style={styles.headerRow}>
-          <MaterialIcons name="groups" size={49} color="#FF9800" />
+          <MaterialIcons name="groups" size={49} color="#4C51BF" />
           <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Users</Text>
             <Text style={styles.headerSub}>Patients &amp; Field Doctors</Text>
@@ -217,12 +217,14 @@ export default function UsersScreen() {
           <Button
             mode={activeTab === 'patients' ? 'contained' : 'outlined'}
             onPress={() => setActiveTab('patients')}
+            buttonColor={activeTab === 'doctors' ? 'white' : '#4C51BF'}
+            textColor={activeTab !== 'doctors' ? 'white' : '#4C51BF'}
             style={styles.toggleBtn}
             icon={({ size, color }) => (
               <MaterialIcons
                 name="people-alt"
                 size={size}
-                color={activeTab === 'patients' ? 'white' : color}
+                color={activeTab === 'patients' ? 'white' : '#4C51BF'}
               />
             )}
           >
@@ -233,11 +235,13 @@ export default function UsersScreen() {
             mode={activeTab === 'doctors' ? 'contained' : 'outlined'}
             onPress={() => setActiveTab('doctors')}
             style={styles.toggleBtn}
+            textColor={activeTab === 'doctors' ? 'white' : '#4C51BF'}
+            buttonColor={activeTab !== 'doctors' ? 'white' : '#4C51BF'}
             icon={({ size, color }) => (
               <MaterialIcons
                 name="medical-services"
                 size={size}
-                color={activeTab === 'doctors' ? 'white' : color}
+                color={activeTab === 'doctors' ? 'white' : '#4C51BF'}
               />
             )}
           >
@@ -266,6 +270,8 @@ export default function UsersScreen() {
             </Text>
             <Switch
               value={item.banned}
+              trackColor={{ false: '#767577', true: '#4C51BF' }}
+              thumbColor={ 'white'}
               onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
               disabled={toggleLoading[item.auth_user_id]}
               style={styles.banSwitch}
@@ -293,6 +299,8 @@ export default function UsersScreen() {
               {item.banned ? 'Banned' : 'Active'}
             </Text>
             <Switch
+            trackColor={{ false: '#767577', true: '#4C51BF' }}
+            thumbColor={ '#b4bef4'}
               value={item.banned}
               onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
               disabled={toggleLoading[item.auth_user_id]}

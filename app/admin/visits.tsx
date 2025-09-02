@@ -83,7 +83,7 @@ const CheckBoxIcon = ({
           : 'check-box-outline-blank'
       }
       size={22}
-      color={checked ? '#FF9800' : '#8E8E8E'}
+      color={checked ? '#4C51BF' : '#8E8E8E'}
     />
   </Pressable>
 );
@@ -421,7 +421,7 @@ export default function VisitsScreen() {
     () => (
       <View style={styles.stickyHeader}>
         <View style={styles.headerRow}>
-          <MaterialIcons name="assignment" size={24} color="#FF9800" />
+          <MaterialIcons name="assignment" size={24} color="#4C51BF" />
         <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Visits</Text>
             <Text style={styles.headerSub}>
@@ -450,7 +450,7 @@ export default function VisitsScreen() {
                   mode={visitType !== 'all' ? 'flat' : 'outlined'}
                   onPress={() => setTypeMenuVisible(true)}
                   style={styles.filterChip}
-                  icon={({ size, color }) => <MaterialIcons name="tune" size={size} color={color} />}
+                  icon={({ size, color }) => <MaterialIcons name="tune" size={size} color={'#4C51BF'} />}
                 >
                   {visitType === 'all' ? 'All Types' : visitType.replace('_', ' ')}
                 </Chip>
@@ -470,7 +470,7 @@ export default function VisitsScreen() {
                   mode={region ? 'flat' : 'outlined'}
                   onPress={() => setRegionMenuVisible(true)}
                   style={styles.filterChip}
-                  icon={({ size, color }) => <MaterialIcons name="place" size={size} color={color} />}
+                  icon={({ size, color }) => <MaterialIcons name="place" size={size} color={'#4C51BF'} />}
                 >
                   {region || 'All Regions'}
                 </Chip>
@@ -496,7 +496,7 @@ export default function VisitsScreen() {
                   mode="outlined"
                   onPress={() => setSortMenuVisible(true)}
                   style={styles.filterChip}
-                  icon={({ size, color }) => <MaterialIcons name="sort" size={size} color={color} />}
+                  icon={({ size, color }) => <MaterialIcons name="sort" size={size} color={'#4C51BF'} />}
                 >
                   {(() => {
                     switch (sortBy) {
@@ -522,7 +522,7 @@ export default function VisitsScreen() {
               onPress={() => setDatePickerOpen(true)}
               style={styles.filterChip}
               onClose={startDate || endDate ? clearDateFilter : undefined}
-              icon={({ size, color }) => <MaterialIcons name="calendar-today" size={size} color={color} />}
+              icon={({ size, color }) => <MaterialIcons name="calendar-today" size={size} color={'#4C51BF'} />}
             >
               {dateChipLabel}
             </Chip>
@@ -577,7 +577,7 @@ export default function VisitsScreen() {
             <MaterialIcons
               name="person"
               size={20}
-              color={isSelected ? "#FF9800" : "#555"}
+              color={isSelected ? "#4C51BF" : "#555"}
               style={styles.leftIcon}
             />
           )}
@@ -607,7 +607,7 @@ export default function VisitsScreen() {
             <MaterialIcons
               name="done-all"
               size={20}
-              color="#FF9800"
+              color="#4C51BF"
               style={styles.leftIcon}
             />
           )}
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   filterChip: { marginRight: 8, height: 32 },
 
   exportRow: { marginTop: 12, alignItems: 'center' },
-  exportBtn: { backgroundColor: '#FF9800', paddingHorizontal: 16 },
+  exportBtn: { backgroundColor: '#4C51BF', paddingHorizontal: 16 },
 
   // List item styles
   selectAllContainer: {
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
   itemContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   checkboxContainer: { paddingHorizontal: 12, paddingVertical: 8 },
   listItem: { flex: 1, paddingVertical: 12 },
-  selectedItem: { backgroundColor: '#fff3e0' },
+  selectedItem: { backgroundColor: '#b4bef4' },
   leftIcon: { marginRight: 8, marginTop: 2 },
   metaText: { color: '#666', fontSize: 12 },
 
@@ -823,7 +823,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   modalDivider: { marginHorizontal: 20, marginVertical: 8 },
   modalSection: { padding: 20, paddingTop: 12, paddingBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#FF9800', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#4C51BF', marginBottom: 12 },
   detailLabel: { fontSize: 12, color: '#666', marginTop: 8, marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   detailValue: { fontSize: 16, color: '#333', marginBottom: 4, lineHeight: 22 },
 

@@ -24,17 +24,20 @@ export default function AdminLayout() {
     <PaperProvider theme={AppTheme}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#FF9800',
+          tabBarActiveTintColor: '#4C51BF',
           tabBarInactiveTintColor: 'gray',
-          headerStyle: { backgroundColor: '#FF9800' },
+          headerStyle: { backgroundColor: '#4C51BF' },
           headerTintColor: '#fff',
           headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
         <Tabs.Screen
+      
           name="index"
+          
           options={{
             title: 'Dashboard',
+            headerShown: false,
             tabBarIcon: ({ color, size }) => (
               <MaterialIcons name="dashboard" size={size} color={color} />
             ),
@@ -61,10 +64,8 @@ export default function AdminLayout() {
         <Tabs.Screen
           name="analytics"
           options={{
-            title: 'Analytics',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="insights" size={size} color={color} />
-            ),
+            href: null
+
           }}
         />
         <Tabs.Screen
