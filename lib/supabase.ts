@@ -173,7 +173,7 @@ export interface Visit {
   treatment_notes?: string
   prescribed_medications?: string
   follow_up_instructions?: string
-
+chat_session_id?: string | null
   visit_type?: 'in_person' | 'virtual_consultation' | 'self_recorded' | string
   location?: VisitLocation | null
 

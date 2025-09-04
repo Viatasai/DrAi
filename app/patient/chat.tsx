@@ -122,6 +122,7 @@ const PatientChatScreen: React.FC = () => {
 
       data?.forEach((message) => {
         if (!message.session_id) return
+        if (message.session_id.includes("doctor")) return;
 
         if (!sessionMap.has(message.session_id)) {
           sessionMap.set(message.session_id, {

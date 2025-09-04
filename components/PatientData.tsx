@@ -294,6 +294,14 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
             })()}
           </Text>
         </View>
+        {
+          visit.chat_session_id?(<>
+          <TouchableOpacity onPress={()=>{router.push(`/doctor/ai-chat-room?sessionId=${visit.chat_session_id}`)}}  style={styles.editButton}>
+            <MaterialIcons name="chat" size={20} color="#4285F4" />
+          </TouchableOpacity>
+
+          </>):null
+        }
         {visit.doctor_id ? (
           <TouchableOpacity
             style={styles.editButton}

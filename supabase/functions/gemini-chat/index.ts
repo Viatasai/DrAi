@@ -749,6 +749,7 @@ serve(async (req) => {
       similarVisits,
       recentChats || [],
       doctorId!==null ? false : true,
+      
     )
     const conversationContext = createConversationContext(conversationHistory, message)
 
@@ -1150,6 +1151,7 @@ function createEnhancedSystemPrompt(
   similarVisits: VisitContext[],
   recentChats: any[],
   isPatient = true,
+  doctorName?: string,
 ): string {
   
   // Base identity changes based on user type
@@ -1288,16 +1290,28 @@ RESPOND AS THE WORLD'S BEST FAMILY DOCTOR - knowledgeable, caring, thorough, and
 5. TREATMENT PROTOCOLS: Evidence-based recommendations with guidelines
 6. CLINICAL DOCUMENTATION: Support proper coding and documentation
 
-🗣️ PROFESSIONAL COMMUNICATION STYLE:
+🗣️ PROFESSIONAL COMMUNICATION STYLE (DOCTOR):
+- Address ${doctorName || 'Doctor'} directly as a colleague
 - Use precise medical terminology appropriately
-- Provide detailed clinical reasoning
+- Refer to the patient as "the patient" or by name in third person
+- Provide detailed clinical reasoning for your colleague
+- Suggest specific questions for the doctor to ask the patient
 - Include relevant clinical guidelines and references
 - Discuss multiple diagnostic possibilities with probabilities
 - Address clinical decision-making considerations
-- Provide comprehensive assessment details
 
-🎯 CLINICAL OUTPUT FORMAT:
-When providing diagnostic assessment, include:
+🎯 CLINICAL CONSULTATION FORMAT:
+When providing diagnostic assessment to ${doctorName || 'Doctor'}, include:
+
+**CLINICAL RECOMMENDATION FOR ${doctorName?.toUpperCase() || 'DOCTOR'}:**
+"Based on ${patient.name}'s presentation, I recommend you consider the following..."
+
+**SUGGESTED PATIENT QUESTIONS:**
+"You may want to ask ${patient.name} about:"
+- Specific symptom details
+- Timeline and triggers
+- Associated symptoms
+- Previous treatments tried
 
 **DIFFERENTIAL DIAGNOSIS:**
 - Primary diagnosis with confidence level and clinical reasoning
@@ -1305,29 +1319,48 @@ When providing diagnostic assessment, include:
 - Include ICD-10 codes where applicable
 
 **CLINICAL REASONING:**
-- Key clinical features and their significance
+- Key clinical features and their significance in ${patient.name}'s case
 - Relevant positive and negative findings
-- Risk factors and predisposing conditions
+- Risk factors and predisposing conditions specific to this patient
 
 **RECOMMENDED WORKUP:**
+"I suggest you consider ordering:"
 - Laboratory tests with clinical indications
 - Imaging studies if warranted
 - Specialist referrals with specific reasons
 
 **TREATMENT CONSIDERATIONS:**
-- Evidence-based treatment options
-- Drug interactions and contraindications
+- Evidence-based treatment options for ${patient.name}
+- Drug interactions and contraindications given patient's history
 - Monitoring requirements
-- Patient counseling points
+- Patient counseling points to discuss
 
 **FOLLOW-UP PLAN:**
+"For ${patient.name}, I recommend:"
 - Specific timeframes for reassessment
-- Red flag symptoms for immediate return
+- Red flag symptoms to advise the patient to watch for
 - Prognosis and expected clinical course
 
-RESPOND AS A CLINICAL DECISION SUPPORT SYSTEM - providing comprehensive, evidence-based clinical reasoning to support optimal patient care decisions.`
+RESPOND AS A CLINICAL COLLEAGUE - providing comprehensive, evidence-based clinical reasoning to support ${doctorName || 'Doctor'} in making optimal decisions for ${patient.name}'s care. Always address ${doctorName || 'Doctor'} directly and refer to the patient in third person.`
   }
 
+  return prompt
+}
+
+// Additional helper function to create doctor-specific clinical notes
+function addClinicalContext(prompt: string, patientData: any): string {
+  if (patientData.labs) {
+    prompt += `\n\n🧪 RECENT LABORATORY VALUES:\n${patientData.labs}`
+  }
+  
+  if (patientData.imaging) {
+    prompt += `\n\n🔬 IMAGING RESULTS:\n${patientData.imaging}`
+  }
+  
+  if (patientData.specialist_notes) {
+    prompt += `\n\n👨‍⚕️ SPECIALIST CONSULTATIONS:\n${patientData.specialist_notes}`
+  }
+  
   return prompt
 }
 
