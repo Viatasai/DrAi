@@ -35,16 +35,39 @@ const PatientSearchScreen: React.FC = () => {
   }, [searchQuery, patients])
 
   const loadPatients = async () => {
+
     try {
+
+      const {data:orgs, error: orgError } = await supabase.from('org_user_mapping').select('org_id').eq('user_id', doctor.auth_user_id)
+      const orgIds=orgs?.map(o=>o.org_id) || []
+console.log(orgIds,'dddd')
+      if (orgError) throw orgError;
+
+      const { data: patientMappings, error: patientMapError } = await supabase
+      .from('org_user_mapping')
+      .select('user_id')
+      .in('org_id', orgIds) 
+      .eq('role', 'patient');
+
+    if (patientMapError) throw patientMapError;
+
+    // Step 2: fetch patient details
+    let patientDetails: any[] = [];
+    if (patientMappings && patientMappings.length > 0) {
+      const patientIds = patientMappings.map((p) => p.user_id);
       const { data, error } = await supabase
         .from('patients')
         .select('*')
-        .order('name', { ascending: true })
+        .in('auth_user_id', patientIds);
 
-      if (error) {
-        console.error('Error loading patients:', error)
+      if (error) throw error;
+      patientDetails = data ?? [];
+    }
+
+      if (patientMapError) {
+        console.error('Error loading patients:', patientMapError)
       } else {
-        setPatients(data || [])
+        setPatients(patientDetails || [])
       }
     } catch (error) {
       console.error('Error loading patients:', error)
