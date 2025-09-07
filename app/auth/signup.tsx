@@ -16,10 +16,12 @@ const SignUpScreen: React.FC = () => {
     role,
     as,
     return: returnToParam,
+    orgId,
   } = useLocalSearchParams<{
     role: string
     as?: string
     return?: string
+    orgId?: string
   }>()
   const returnTo = typeof returnToParam === 'string' ? returnToParam : undefined
   const launchedByDoctor = as === 'doctor'
@@ -241,7 +243,7 @@ const SignUpScreen: React.FC = () => {
 
       console.log('Signup attempt:', { email: email.trim(), role, userData })
 
-      let orgId = null
+      let finalOrgId = orgId || null // Use provided orgId or null
       
       // Step 1: Create organization if role is 'organization'
       if (role === 'organization') {
@@ -261,8 +263,8 @@ const SignUpScreen: React.FC = () => {
           return
         }
         
-        orgId = orgResult.id
-        console.log('Organization created successfully:', orgId)
+        finalOrgId = orgResult.id
+        console.log('Organization created successfully:', finalOrgId)
       }
       if(role=== 'field_doctor'){
         const orgData = {
@@ -281,8 +283,8 @@ const SignUpScreen: React.FC = () => {
           return
         }
         
-        orgId = orgResult.id
-        console.log('Organization created successfully:', orgId)
+        finalOrgId = orgResult.id
+        console.log('Organization created successfully:', finalOrgId)
 
       }
 
@@ -292,7 +294,7 @@ const SignUpScreen: React.FC = () => {
         email.trim().toLowerCase(),
         password,
         userData,
-        orgId,
+        finalOrgId,
       )
 
       if (error) {
@@ -322,9 +324,12 @@ const SignUpScreen: React.FC = () => {
 
         // ⭐ Success flow - no need to sign out since user was never logged in
         if (launchedByDoctor) {
-          console.log('Patient account created by doctor')
+          console.log('Patient account created by doctor', { orgId: finalOrgId })
+          const message = finalOrgId 
+            ? 'Patient account created successfully and assigned to organization. They can now sign in from the patient app.'
+            : 'Patient account created successfully. They can now sign in from the patient app.'
           showToast.success(
-            'Patient account created successfully. They can now sign in from the patient app.',
+            message,
             'Account Created',
             () => router.replace(returnTo || '/doctor'),
           )
