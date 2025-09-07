@@ -563,8 +563,9 @@ interface Doctor {
 interface Organization {
   id: string
   name: string
-  type: 'hospital' | 'clinic' | 'lab'
+  type: string
   location: string
+  phone: string
   verified: boolean
 }
 
@@ -730,25 +731,25 @@ const PatientProfileScreen: React.FC = () => {
   }
 
   const handleRevokeAccess = async (accessId: string) => {
-   
-      try {
-        const { error } = await supabase
-          .from('org_user_mapping')
-          .delete()
-          .eq('id', accessId)
 
-        if (error) {
-          showToast.error('Error', 'Failed to revoke access')
-          console.error('Error revoking access:', error)
-        } else {
-          showToast.success('Success', 'Access revoked successfully')
-          await loadAccessGrants()
-        }
-      } catch (error) {
-        showToast.error('Error', 'An unexpected error occurred')
+    try {
+      const { error } = await supabase
+        .from('org_user_mapping')
+        .delete()
+        .eq('id', accessId)
+
+      if (error) {
+        showToast.error('Error', 'Failed to revoke access')
         console.error('Error revoking access:', error)
+      } else {
+        showToast.success('Success', 'Access revoked successfully')
+        await loadAccessGrants()
       }
-    
+    } catch (error) {
+      showToast.error('Error', 'An unexpected error occurred')
+      console.error('Error revoking access:', error)
+    }
+
   }
 
   const handleSave = async () => {
@@ -811,7 +812,7 @@ const PatientProfileScreen: React.FC = () => {
         <View style={styles.accessItemHeader}>
           <View style={styles.accessIcon}>
             <MaterialIcons
-              name={isDoctor ? "person" : "business"}
+              name={item.organization?.type === '2' ? "person" : "business"}
               size={24}
               color="#4285F4"
             />
@@ -819,12 +820,17 @@ const PatientProfileScreen: React.FC = () => {
           <View style={styles.accessInfo}>
             <Text style={styles.accessName}>{entity?.name}</Text>
             <Text style={styles.accessSubtitle}>
-              {isDoctor
+              {/* {isDoctor
                 ? `${(entity as Doctor)?.specialty} • ${(entity as Doctor)?.hospital_name || 'Independent'}`
                 : `${(entity as Organization)?.type} • ${(entity as Organization)?.location}`
-              }
+              } */}
+              {item.organization?.type === '2' ? 'Doctor' : 'Hospital'}
+
             </Text>
             <View style={styles.permissionChips}>
+              <Text>
+                {item.organization?.phone}
+              </Text>
               {/* {item.permissions.map((permission) => (
                 <Chip
                   key={permission}
@@ -1185,6 +1191,7 @@ const PatientProfileScreen: React.FC = () => {
               buttonColor="#4285F4"
               contentStyle={styles.addButtonContent}
               style={styles.addButton}
+              textColor='#FFFFFF'
               icon={() => <MaterialIcons name="add" size={20} color="#FFFFFF" />}
             >
               Grant Access
@@ -1368,7 +1375,7 @@ const PatientProfileScreen: React.FC = () => {
                     mode="contained"
                     onPress={handleGrantAccess}
                     loading={loading}
-                    disabled={loading }
+                    disabled={loading}
                     buttonColor="#4285F4"
                     style={styles.grantButton}
                   >
@@ -1653,10 +1660,11 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   accessItem: {
+    marginTop:15,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+   
     borderWidth: 1,
     borderColor: '#E8E8E8',
     shadowColor: '#000',
@@ -1883,11 +1891,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   modalBackButton: {
-   flex:1,
+    flex: 1,
     borderRadius: 12,
   },
   grantButton: {
-    flex:1,
+    flex: 1,
     borderRadius: 12,
   },
 })

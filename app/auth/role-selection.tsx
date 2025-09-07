@@ -28,6 +28,12 @@ const RoleSelectionScreen: React.FC = () => {
       icon: 'medical-services',
     },
     {
+      id: 'organization',
+      title: 'Healthcare Organization',
+      description: 'Create organization, manage doctors, and oversee patient care',
+      icon: 'business',
+    },
+    {
       id: 'admin',
       title: 'Administrator',
       description: 'Manage users, oversee system operations, and view analytics',
