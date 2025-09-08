@@ -1,3 +1,4 @@
+
 import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Card, Text, Chip, Divider } from "react-native-paper";
@@ -183,28 +184,71 @@ const VisitCard: React.FC<VisitCardProps> = ({
 };
 
 const styles = StyleSheet.create({
-  cardWrapper: { marginBottom: 16 },
-  card: { elevation: 2 },
-  content: { padding: 20 },
+  cardWrapper: {
+    marginBottom: 16
+  },
+  card: {
+    elevation: 2
+  },
+  content: {
+    padding: 20
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 12,
   },
-  dateContainer: { flex: 1 },
-  date: { fontSize: 18, fontWeight: "bold" },
-  time: { color: "#666", marginTop: 4 },
-  statusContainer: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
-  statusChip: { height: 24 },
-  normalChip: { backgroundColor: "#E8F5E8" },
-  alertChip: { backgroundColor: "#FFEBEE" },
-  personInfo: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  personName: { marginLeft: 8, color: "#666", fontSize: 14 },
-  divider: { marginVertical: 16 },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontWeight: "bold", color: "#333", marginBottom: 8 },
-  sectionContent: { color: "#666", lineHeight: 20 },
+  dateContainer: {
+    flex: 1
+  },
+  date: {
+    fontSize: 18,
+    fontWeight: "bold"
+  },
+  time: {
+    color: "#666",
+    marginTop: 4
+  },
+  statusContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4
+  },
+  statusChip: {
+    height: 24
+  },
+  normalChip: {
+    backgroundColor: "#E8F5E8"
+  },
+  alertChip: {
+    backgroundColor: "#FFEBEE"
+  },
+  personInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  personName: {
+    marginLeft: 8,
+    color: "#666",
+    fontSize: 14
+  },
+  divider: {
+    marginVertical: 16
+  },
+  section: {
+    marginBottom: 16
+  },
+  sectionTitle: {
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8
+  },
+  sectionContent: {
+    color: "#666",
+    lineHeight: 20
+  },
   medicationContent: {
     backgroundColor: "#f0f0f0",
     padding: 12,
@@ -217,8 +261,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     color: "#333",
   },
-  compactInfo: { marginTop: 8 },
-  compactText: { color: "#666", fontSize: 14, marginBottom: 4 },
+  compactInfo: {
+    marginTop: 8
+  },
+  compactText: {
+    color: "#666",
+    fontSize: 14,
+    marginBottom: 4
+  },
 });
 
 export default VisitCard;

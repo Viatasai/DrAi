@@ -25,6 +25,78 @@ interface PatientDetailsWrapperProps {
   view: string;
 }
 
+/* ---------- display-only conversion helpers (DB canonical: kg, cm, mmHg, °C, mg/dL) ---------- */
+const LB_PER_KG = 2.2046226218;
+const KG_PER_ST = 6.35029318;
+const MMHG_PER_KPA = 7.50061683;
+const MGDL_PER_MMOLL = 18;
+
+const fromKg = (kg: number, u: "kg" | "lb" | "st") =>
+  u === "kg" ? kg : u === "lb" ? kg * LB_PER_KG : kg / KG_PER_ST;
+
+const fromCm = (cm: number, u: "cm" | "in" | "ft") =>
+  u === "cm" ? cm : u === "in" ? cm / 2.54 : cm / 30.48;
+
+const fromMmHg = (mmHg: number, u: "mmHg" | "kPa") =>
+  u === "mmHg" ? mmHg : mmHg / MMHG_PER_KPA;
+
+const fromC = (c: number, u: "C" | "F") => (u === "C" ? c : c * (9 / 5) + 32);
+
+const fromMgdl = (mgdl: number, u: "mg_dL" | "mmol_L") =>
+  u === "mg_dL" ? mgdl : mgdl / MGDL_PER_MMOLL;
+
+const fmt = (n: number, d = 2) =>
+  Number.isFinite(n) ? Number(n.toFixed(d)).toString() : "";
+
+/* simple inline group for unit chips (same visual language as patient history) */
+function UnitGroup<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (v: T) => void;
+  options: [string, T][];
+}) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginRight: 10, marginBottom: 8 }}>
+      <Text style={{ fontSize: 12, color: "#666", marginRight: 6 }}>{label}:</Text>
+      <View style={{ flexDirection: "row" }}>
+        {options.map(([txt, val]) => {
+          const active = value === val;
+          return (
+            <TouchableOpacity
+              key={`${label}-${val}`}
+              onPress={() => onChange(val)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: active ? "#2F6DF6" : "#D7E3FF",
+                backgroundColor: active ? "#2F6DF6" : "#FFF",
+                marginRight: 6,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: active ? "#FFF" : "#3A69C1",
+                  fontWeight: active ? "600" : "500",
+                }}
+              >
+                {txt}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
   view,
   patient_id,
@@ -43,6 +115,13 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
   const [filteredAiSessions, setFilteredAiSessions] = useState<Visit[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  /* ---------- NEW: global display-unit state for History -> Visits ---------- */
+  const [dispWeight, setDispWeight] = useState<"kg" | "lb" | "st">("kg");
+  const [dispHeight, setDispHeight] = useState<"cm" | "in" | "ft">("cm");
+  const [dispBP, setDispBP] = useState<"mmHg" | "kPa">("mmHg");
+  const [dispTemp, setDispTemp] = useState<"C" | "F">("C");
+  const [dispSugar, setDispSugar] = useState<"mg_dL" | "mmol_L">("mg_dL");
 
   useEffect(() => {
     if (patient_id) loadPatientData(patient_id);
@@ -79,7 +158,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
           `
           *,
           field_doctors (name, specialization)
-        `,
+        `
         )
         .eq("patient_id", patientId)
         .order("visit_date", { ascending: false });
@@ -123,32 +202,41 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
       minute: "2-digit",
     });
 
+  /* ---------- UPDATED: use display units to build vitals chips ---------- */
   const getVitalChips = (visit: Visit) => {
     const vitals: { label: string; unit?: string; alert?: boolean }[] = [];
-    if (visit.weight) vitals.push({ label: `${visit.weight} kg` });
+    if (visit.weight != null) {
+      const w = fromKg(visit.weight, dispWeight);
+      vitals.push({ label: `${fmt(w)} ${dispWeight}` });
+    }
     if (visit.systolic_bp && visit.diastolic_bp) {
+      const s = fromMmHg(visit.systolic_bp, dispBP);
+      const d = fromMmHg(visit.diastolic_bp, dispBP);
       const isHigh = visit.systolic_bp > 140 || visit.diastolic_bp > 90;
       vitals.push({
-        label: `${visit.systolic_bp}/${visit.diastolic_bp}`,
-        unit: "mmHg",
+        label: `${fmt(s, dispBP === "kPa" ? 1 : 0)}/${fmt(
+          d,
+          dispBP === "kPa" ? 1 : 0
+        )}`,
+        unit: dispBP,
         alert: isHigh,
       });
     }
-    if (visit.heart_rate)
+    if (visit.heart_rate != null)
       vitals.push({ label: `${visit.heart_rate}`, unit: "bpm" });
-    if (visit.temperature) {
-      const isHigh = visit.temperature > 37.5;
-      vitals.push({ label: `${visit.temperature}°C`, alert: isHigh });
+    if (visit.temperature != null) {
+      const t = fromC(visit.temperature, dispTemp);
+      vitals.push({ label: `${fmt(t, 1)}°${dispTemp}` });
     }
-    if (visit.blood_sugar) {
-      const isHigh = visit.blood_sugar > 180;
+    if (visit.blood_sugar != null) {
+      const b = fromMgdl(visit.blood_sugar, dispSugar);
       vitals.push({
-        label: `${visit.blood_sugar}`,
-        unit: "mg/dL",
-        alert: isHigh,
+        label: `${fmt(b, dispSugar === "mmol_L" ? 1 : 0)}`,
+        unit: dispSugar === "mg_dL" ? "mg/dL" : "mmol/L",
+        alert: visit.blood_sugar > 180,
       });
     }
-    if (visit.oxygen_saturation)
+    if (visit.oxygen_saturation != null)
       vitals.push({ label: `${visit.oxygen_saturation}%`, unit: "O₂" });
     return vitals;
   };
@@ -450,6 +538,62 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
     return (
       <>
         <TabHeader />
+
+        {/* ---------- NEW: global unit chips row (doctor History -> Visits) ---------- */}
+        {historyTab === "doctor" ? (
+          <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8 }}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              <UnitGroup
+                label="Weight"
+                value={dispWeight}
+                onChange={setDispWeight}
+                options={[
+                  ["kg", "kg"],
+                  ["lb", "lb"],
+                  ["st", "st"],
+                ]}
+              />
+              <UnitGroup
+                label="Height"
+                value={dispHeight}
+                onChange={setDispHeight}
+                options={[
+                  ["cm", "cm"],
+                  ["in", "in"],
+                  ["ft", "ft"],
+                ]}
+              />
+              <UnitGroup
+                label="BP"
+                value={dispBP}
+                onChange={setDispBP}
+                options={[
+                  ["mmHg", "mmHg"],
+                  ["kPa", "kPa"],
+                ]}
+              />
+              <UnitGroup
+                label="Temp"
+                value={dispTemp}
+                onChange={setDispTemp}
+                options={[
+                  ["°C", "C"],
+                  ["°F", "F"],
+                ]}
+              />
+              <UnitGroup
+                label="Sugar"
+                value={dispSugar}
+                onChange={setDispSugar}
+                options={[
+                  ["mg/dL", "mg_dL"],
+                  ["mmol/L", "mmol_L"],
+                ]}
+              />
+            </View>
+          </View>
+        ) : null}
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -484,7 +628,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
                 <MaterialIcons name="psychology" size={48} color="#CCCCCC" />
               </View>
               <Text style={styles.emptyTitle}>No AI sessions yet</Text>
-              <Text style={styles.emptyText}>
+              <Text className="styles.emptyText">
                 Start a conversation with the AI assistant to see it here.
               </Text>
             </View>
