@@ -514,9 +514,14 @@ import {
   Admin,
 } from '../lib/supabase'
 
+// Keep your canonical role strings (includes org_admin)
+type AppUserRole = Omit<UserRole, 'role'> & {
+  role: 'patient' | 'field_doctor' | 'admin' | 'org_admin'
+}
+
 interface AuthContextType {
   user: User | null
-  userRole: UserRole | null
+  userRole: AppUserRole | null
   userProfile: Patient | FieldDoctor | Admin | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>
@@ -535,10 +540,8 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
-  const [userProfile, setUserProfile] = useState<Patient | FieldDoctor | Admin | null>(
-    null,
-  )
+  const [userRole, setUserRole] = useState<AppUserRole | null>(null)
+  const [userProfile, setUserProfile] = useState<Patient | FieldDoctor | Admin | null>(null)
   const [loading, setLoading] = useState(true)
 
   const handleAuthAndNavigation = async (authUser: User | null) => {
@@ -554,9 +557,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const roleData = await getUserRole(authUser.id)
-      const role = roleData?.role as 'patient' | 'field_doctor' | 'admin' | undefined
+      // 1) Try the canonical source of truth
+      const roleDataRaw = await getUserRole(authUser.id)
+      // Type-narrow for TS; the DB may return any string, but we only route on these
+      let role: AppUserRole['role'] | undefined =
+        roleDataRaw?.role as AppUserRole['role'] | undefined
 
+      // 2) 🔒 Fallback path:
+      // If user_roles has no row (or role is null), infer from org_user_mapping.
+      // This prevents "blank" screens after refresh if the row is missing.
+      if (!role) {
+        const { data: mapRow, error: mapErr } = await supabase
+          .from('org_user_mapping')
+          .select('role')
+          .eq('user_id', authUser.id)
+          .eq('role', 'org_admin')
+          .maybeSingle()
+        if (mapErr) console.warn('org_user_mapping lookup err:', mapErr)
+        if (mapRow?.role === 'org_admin') {
+          role = 'org_admin'
+          // Synthesize a minimal userRole object so guards/routes work.
+          // We preserve any fields getUserRole() returned (if any).
+          setUserRole({ ...(roleDataRaw as any), role })
+        }
+      }
+
+      // 3) If still no role → treat as unaffiliated
       if (!role) {
         setUserRole(null)
         setUserProfile(null)
@@ -565,19 +591,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return
       }
 
-      setUserRole(roleData)
+      // If we didn’t set userRole in the fallback branch above, set it now
+      if (!userRole) {
+        setUserRole({ ...(roleDataRaw as any), role })
+      }
 
-      // ✅ Navigate first (instant), then load profile
+      // 4) Navigate fast based on role
       if (role === 'patient') router.replace('/patient')
       else if (role === 'field_doctor') router.replace('/doctor')
       else if (role === 'admin') router.replace('/admin')
+      else if (role === 'org_admin') router.replace('/organization')
 
-      // Fetch profile after navigation (non-blocking for UX)
+      // 5) Load profile in background (same as before)
       try {
         let profile: Patient | FieldDoctor | Admin | null = null
         if (role === 'patient') profile = await getPatientProfile(authUser.id)
         else if (role === 'field_doctor') profile = await getDoctorProfile(authUser.id)
         else if (role === 'admin') profile = await getAdminProfile(authUser.id)
+        // org_admin has org data elsewhere; no profile fetch needed
         setUserProfile(profile)
       } catch (e) {
         console.error('❌ Profile load failed:', e)
@@ -596,6 +627,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     return await supabase.auth.signInWithPassword({ email, password })
   }
+
   useEffect(() => {
     // Initial session check
     ;(async () => {
@@ -605,7 +637,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleAuthAndNavigation(session?.user ?? null)
     })()
 
-    // 🔧 Correct destructure + unsubscribe
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -613,42 +644,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleAuthAndNavigation(session?.user ?? null)
     })
 
-    return () => {
-      subscription.unsubscribe()
-    }
+    return () => subscription.unsubscribe()
   }, [])
 
   const signUp = async (email: string, password: string, userData: any) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error || !data.user) return { error }
 
-    if (error || !data.user) {
-      return { error }
-    }
-
-    // Create user role
+    // Ensure every signup writes to user_roles (supports 'org_admin' too)
     const { error: roleError } = await supabase.from('user_roles').insert({
       auth_user_id: data.user.id,
       role: userData.role,
     })
+    if (roleError) return { error: roleError }
 
-    if (roleError) {
-      return { error: roleError }
-    }
-
-    // Create profile based on role
+    // Create profile based on role (unchanged)
     let profileError = null
     switch (userData.role) {
-      case 'patient':
-        const { error: patientError } = await supabase.from('patients').insert({
+      case 'patient': {
+        const { error: e } = await supabase.from('patients').insert({
           auth_user_id: data.user.id,
           name: userData.name,
           age: userData.age,
           gender: userData.gender,
           phone: userData.phone,
-          email: email,
+          email,
           address: userData.address,
           emergency_contact_name: userData.emergencyContactName,
           emergency_contact_phone: userData.emergencyContactPhone,
@@ -656,32 +676,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           allergies: userData.allergies,
           current_medications: userData.currentMedications,
         })
-        profileError = patientError
+        profileError = e
         break
-
-      case 'field_doctor':
-        const { error: doctorError } = await supabase.from('field_doctors').insert({
+      }
+      case 'field_doctor': {
+        const { error: e } = await supabase.from('field_doctors').insert({
           auth_user_id: data.user.id,
           name: userData.name,
           specialization: userData.specialization,
           license_number: userData.licenseNumber,
           phone: userData.phone,
-          email: email,
+          email,
           years_of_experience: userData.yearsOfExperience,
         })
-        profileError = doctorError
+        profileError = e
         break
-
-      case 'admin':
-        const { error: adminError } = await supabase.from('admins').insert({
+      }
+      case 'admin': {
+        const { error: e } = await supabase.from('admins').insert({
           auth_user_id: data.user.id,
           name: userData.name,
           phone: userData.phone,
-          email: email,
+          email,
           permissions: userData.permissions || [],
         })
-        profileError = adminError
+        profileError = e
         break
+      }
+      // org_admin: no separate profile table by your design
     }
 
     return { error: profileError }

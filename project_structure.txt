@@ -71,7 +71,11 @@
 │   ├── _layout.tsx
 │   ├── admin
 │   │   ├── _layout.tsx
-│   │   └── index.tsx
+│   │   ├── analytics.tsx
+│   │   ├── index.tsx
+│   │   ├── profile.tsx
+│   │   ├── users.tsx
+│   │   └── visits.tsx
 │   ├── auth
 │   │   ├── _layout.tsx
 │   │   ├── index.tsx
@@ -106,11 +110,13 @@
 │   ├── logo.png
 │   └── splash-icon.png
 ├── components
+│   ├── AdminUserEditSheet.tsx
 │   ├── Calender.tsx
 │   ├── ChatBubble.tsx
 │   ├── EmptyState.tsx
 │   ├── HealthTrendsComponent.tsx
 │   ├── Loader.tsx
+│   ├── OrganizationSelector.tsx
 │   ├── PatientData.tsx
 │   ├── StatsCard.tsx
 │   ├── TrendChart.tsx
@@ -155,7 +161,8 @@
 │   ├── Podfile.lock
 │   └── Podfile.properties.json
 ├── lib
-│   └── supabase.ts
+│   ├── supabase.ts
+│   └── theme.ts
 ├── package-lock.json
 ├── package.json
 ├── project_structure.txt
@@ -163,6 +170,8 @@
 │   ├── config.toml
 │   ├── functions
 │   │   ├── chat-history
+│   │   │   └── index.ts
+│   │   ├── create-organization
 │   │   │   └── index.ts
 │   │   ├── create-user
 │   │   │   └── index.ts
@@ -179,4 +188,4 @@
     ├── location.ts
     └── toast.tsx
 
-56 directories, 124 files
+57 directories, 132 files
