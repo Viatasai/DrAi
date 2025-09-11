@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { Tabs, useRouter } from 'expo-router'
 import { MaterialIcons } from '@expo/vector-icons'
 import { PaperProvider } from 'react-native-paper'
@@ -9,14 +9,17 @@ export default function OrganizationLayout() {
   const router = useRouter()
 
   // Only org_admins can access /organization
+  const ready = useMemo(() => !loading && user !== null && userRole !== null, [loading, user, userRole])
+
   useEffect(() => {
-    if (!loading && (!user || !userRole || userRole.role !== 'org_admin')) {
+    if (!ready) return
+    if (userRole!.role !== 'org_admin') {
       router.replace('/auth/role-selection')
     }
-  }, [user, userRole, loading])
+  }, [ready, userRole, router])
 
-  if (loading) return null
-  if (!user || !userRole || userRole.role !== 'org_admin') return null
+  if (!ready) return null
+  if (userRole!.role !== 'org_admin') return null
 
   return (
     <PaperProvider>

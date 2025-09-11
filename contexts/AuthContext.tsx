@@ -557,15 +557,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // 1) Try the canonical source of truth
       const roleDataRaw = await getUserRole(authUser.id)
-      // Type-narrow for TS; the DB may return any string, but we only route on these
+      
       let role: AppUserRole['role'] | undefined =
         roleDataRaw?.role as AppUserRole['role'] | undefined
 
-      // 2) 🔒 Fallback path:
-      // If user_roles has no row (or role is null), infer from org_user_mapping.
-      // This prevents "blank" screens after refresh if the row is missing.
+      // Fallback path:
+      
       if (!role) {
         const { data: mapRow, error: mapErr } = await supabase
           .from('org_user_mapping')
@@ -576,13 +574,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mapErr) console.warn('org_user_mapping lookup err:', mapErr)
         if (mapRow?.role === 'org_admin') {
           role = 'org_admin'
-          // Synthesize a minimal userRole object so guards/routes work.
-          // We preserve any fields getUserRole() returned (if any).
+          
           setUserRole({ ...(roleDataRaw as any), role })
         }
       }
 
-      // 3) If still no role → treat as unaffiliated
+      
       if (!role) {
         setUserRole(null)
         setUserProfile(null)
@@ -596,19 +593,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserRole({ ...(roleDataRaw as any), role })
       }
 
-      // 4) Navigate fast based on role
+      //  Navigate fast based on role
       if (role === 'patient') router.replace('/patient')
       else if (role === 'field_doctor') router.replace('/doctor')
       else if (role === 'admin') router.replace('/admin')
       else if (role === 'org_admin') router.replace('/organization')
 
-      // 5) Load profile in background (same as before)
+     
       try {
         let profile: Patient | FieldDoctor | Admin | null = null
         if (role === 'patient') profile = await getPatientProfile(authUser.id)
         else if (role === 'field_doctor') profile = await getDoctorProfile(authUser.id)
         else if (role === 'admin') profile = await getAdminProfile(authUser.id)
-        // org_admin has org data elsewhere; no profile fetch needed
+        
         setUserProfile(profile)
       } catch (e) {
         console.error('❌ Profile load failed:', e)
@@ -629,7 +626,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   useEffect(() => {
-    // Initial session check
+   
     ;(async () => {
       const {
         data: { session },
@@ -651,14 +648,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error || !data.user) return { error }
 
-    // Ensure every signup writes to user_roles (supports 'org_admin' too)
+    
     const { error: roleError } = await supabase.from('user_roles').insert({
       auth_user_id: data.user.id,
       role: userData.role,
     })
     if (roleError) return { error: roleError }
 
-    // Create profile based on role (unchanged)
+    
     let profileError = null
     switch (userData.role) {
       case 'patient': {
@@ -703,7 +700,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         profileError = e
         break
       }
-      // org_admin: no separate profile table by your design
+      
     }
 
     return { error: profileError }

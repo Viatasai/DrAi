@@ -6,13 +6,13 @@ import {
   Button,
   List,
   ActivityIndicator,
-  Switch,
   TextInput,
   Portal,
   Dialog,
   FAB,
   Divider,
   Snackbar,
+  IconButton, 
 } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { supabase } from '~/lib/supabase'
@@ -51,7 +51,7 @@ type OrgAdmin = {
   banned: boolean
 }
 
-// --- Palette (visual-only) ---
+//Palette 
 const COLORS = {
   primary: '#4C51BF',
   success: '#10B981',
@@ -66,7 +66,7 @@ const COLORS = {
 }
 
 export default function OrganizationUsersScreen() {
-  // visual pass only — logic unchanged
+  
   const { user } = useAuth()
 
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -114,6 +114,14 @@ export default function OrganizationUsersScreen() {
   const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>([])
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set())
   const [assigningDocs, setAssigningDocs] = useState(false)
+
+  // confirmation state for “remove from org”
+  const [confirmRemove, setConfirmRemove] = useState<{
+    visible: boolean
+    authUserId: string | null
+    name: string
+    role: 'doctor' | 'patient' | 'org_admin'
+  }>({ visible: false, authUserId: null, name: '', role: 'doctor' })
 
   const [toggleLoading, setToggleLoading] = useState<Record<string, boolean>>({})
 
@@ -391,28 +399,44 @@ export default function OrganizationUsersScreen() {
     }
   }
 
-  const toggleBan = async (authUserId: string, currentBanStatus: boolean) => {
-    if (toggleLoading[authUserId]) return
+  // ask for confirmation to remove a member from this org
+  const askRemove = (authUserId: string, displayName: string, role: 'doctor' | 'patient' | 'org_admin') => {
+    setConfirmRemove({
+      visible: true,
+      authUserId,
+      name: displayName || 'this user',
+      role,
+    })
+  }
+
+  // remove mapping org↔user for selected role
+  const removeFromOrg = async () => {
+    if (!orgId || !confirmRemove.authUserId) return
     try {
-      setToggleLoading((p) => ({ ...p, [authUserId]: true }))
-      const { error } = await supabase.rpc('toggle_user_ban', {
-        uid: authUserId,
-        ban: !currentBanStatus,
-      })
+      const { error } = await supabase
+        .from('org_user_mapping')
+        .delete()
+        .eq('org_id', orgId)
+        .eq('user_id', confirmRemove.authUserId)
+        .eq('role', confirmRemove.role)
+
       if (error) throw error
 
-      if (activeTab === 'doctors') {
-        setOrgDoctors((prev) => prev.map((u) => (u.auth_user_id === authUserId ? { ...u, banned: !currentBanStatus } : u)))
-      } else if (activeTab === 'patients') {
-        setOrgPatients((prev) => prev.map((u) => (u.auth_user_id === authUserId ? { ...u, banned: !currentBanStatus } : u)))
+      // Update local lists
+      if (confirmRemove.role === 'doctor') {
+        setOrgDoctors((prev) => prev.filter((u) => u.auth_user_id !== confirmRemove.authUserId))
+      } else if (confirmRemove.role === 'patient') {
+        setOrgPatients((prev) => prev.filter((u) => u.auth_user_id !== confirmRemove.authUserId))
       } else {
-        setOrgAdmins((prev) => prev.map((u) => (u.auth_user_id === authUserId ? { ...u, banned: !currentBanStatus } : u)))
+        setOrgAdmins((prev) => prev.filter((u) => u.auth_user_id !== confirmRemove.authUserId))
       }
+
+      showSnack('Removed from organization')
     } catch (e) {
-      console.error('Failed to toggle ban', e)
-      showSnack('Failed to update status')
+      console.error('Failed to remove from organization', e)
+      showSnack('Failed to remove')
     } finally {
-      setToggleLoading((p) => ({ ...p, [authUserId]: false }))
+      setConfirmRemove({ visible: false, authUserId: null, name: '', role: 'doctor' })
     }
   }
 
@@ -447,6 +471,7 @@ export default function OrganizationUsersScreen() {
     [org?.name, activeTab],
   )
 
+  // ⬇️ UI rows: swap the previous Active/Banned switch for a trash icon with confirm dialog
   const renderDoctorItem = ({ item }: { item: Doctor }) => (
     <List.Item
       title={item.name || 'Unnamed'}
@@ -457,17 +482,12 @@ export default function OrganizationUsersScreen() {
       right={() => (
         <View style={styles.userItemRight}>
           <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>
-          <View style={styles.banToggleContainer}>
-            <Text style={[styles.banLabel, item.banned && styles.banLabelActive]}>{item.banned ? 'Banned' : 'Active'}</Text>
-            <Switch
-              value={item.banned}
-              trackColor={{ false: '#D1D5DB', true: COLORS.primary }}
-              thumbColor={COLORS.surface}
-              onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
-              disabled={toggleLoading[item.auth_user_id]}
-              style={styles.banSwitch}
-            />
-          </View>
+          <IconButton
+            icon="delete-outline"
+            iconColor={COLORS.danger}
+            size={20}
+            onPress={() => askRemove(item.auth_user_id, item.name || item.email || '', 'doctor')}
+          />
         </View>
       )}
       contentStyle={styles.listItemContent}
@@ -484,17 +504,12 @@ export default function OrganizationUsersScreen() {
       right={() => (
         <View style={styles.userItemRight}>
           <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>
-          <View style={styles.banToggleContainer}>
-            <Text style={[styles.banLabel, item.banned && styles.banLabelActive]}>{item.banned ? 'Banned' : 'Active'}</Text>
-            <Switch
-              value={item.banned}
-              trackColor={{ false: '#D1D5DB', true: COLORS.primary }}
-              thumbColor={COLORS.surface}
-              onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
-              disabled={toggleLoading[item.auth_user_id]}
-              style={styles.banSwitch}
-            />
-          </View>
+          <IconButton
+            icon="delete-outline"
+            iconColor={COLORS.danger}
+            size={20}
+            onPress={() => askRemove(item.auth_user_id, item.name || item.email || '', 'patient')}
+          />
         </View>
       )}
       contentStyle={styles.listItemContent}
@@ -511,17 +526,12 @@ export default function OrganizationUsersScreen() {
       right={() => (
         <View style={styles.userItemRight}>
           <Text style={styles.metaText}>{formatWhen(item.created_at)}</Text>
-          <View style={styles.banToggleContainer}>
-            <Text style={[styles.banLabel, item.banned && styles.banLabelActive]}>{item.banned ? 'Banned' : 'Active'}</Text>
-            <Switch
-              value={item.banned}
-              trackColor={{ false: '#D1D5DB', true: COLORS.primary }}
-              thumbColor={COLORS.surface}
-              onValueChange={() => toggleBan(item.auth_user_id, item.banned)}
-              disabled={toggleLoading[item.auth_user_id]}
-              style={styles.banSwitch}
-            />
-          </View>
+          <IconButton
+            icon="delete-outline"
+            iconColor={COLORS.danger}
+            size={20}
+            onPress={() => askRemove(item.auth_user_id, item.name || item.email || '', 'org_admin')}
+          />
         </View>
       )}
       contentStyle={styles.listItemContent}
@@ -558,7 +568,7 @@ export default function OrganizationUsersScreen() {
         }
       />
 
-      {/* FABs */}
+      
       <View style={styles.fabContainer}>
         {activeTab === 'doctors' && (
           <>
@@ -592,7 +602,7 @@ export default function OrganizationUsersScreen() {
         )}
       </View>
 
-      {/* Create Doctor Modal */}
+      
       <Portal>
         <Dialog
           visible={createDocModalVisible}
@@ -856,6 +866,33 @@ export default function OrganizationUsersScreen() {
         </Dialog>
       </Portal>
 
+      
+      <Portal>
+        <Dialog
+          visible={confirmRemove.visible}
+          onDismiss={() => setConfirmRemove({ visible: false, authUserId: null, name: '', role: 'doctor' })}
+          style={styles.modal}
+        >
+          <Dialog.Title style={styles.dialogTitle}>Remove from Organization?</Dialog.Title>
+          <Dialog.Content>
+            <Text style={{ color: COLORS.textSecondary, marginBottom: 8 }}>
+              You’re about to remove <Text style={{ fontWeight: '600', color: COLORS.text }}>{confirmRemove.name || 'this user'}</Text> from this organization.
+            </Text>
+            <Text style={{ color: COLORS.textSecondary }}>
+              This does <Text style={{ fontWeight: '700', color: COLORS.text }}>not</Text> delete their account or records. You can add them back later or assign them to a different organization.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setConfirmRemove({ visible: false, authUserId: null, name: '', role: 'doctor' })}>
+              Cancel
+            </Button>
+            <Button mode="contained" buttonColor={COLORS.danger} textColor={COLORS.surface} onPress={removeFromOrg}>
+              Remove
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
       <Snackbar visible={snack.visible} onDismiss={hideSnack} duration={2000}>
         {snack.text}
       </Snackbar>
@@ -978,7 +1015,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.success,
   },
 
-  // Dialogs (light surface + dark headings)
+ 
   modal: {
     maxHeight: '80%',
     backgroundColor: COLORS.surface,
@@ -999,12 +1036,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Inputs
+
   formInput: {
     marginBottom: 12,
   },
   formInputSurface: {
-    backgroundColor: COLORS.surface, // white input background
+    backgroundColor: COLORS.surface, 
   },
 
   modalSubtext: {
