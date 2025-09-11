@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable } from 'react-native'
 import { Text, FAB, ActivityIndicator } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Patient, Visit, getVisitShortLocation } from '../../lib/supabase'
 import { useRouter } from 'expo-router'
 
-/** ----------------- Unit helpers (display-only) ----------------- */
+
 type WeightUnit = 'kg' | 'lb' | 'st'
 type HeightUnit = 'cm' | 'in' | 'ft'
 type TempUnit = 'C' | 'F'
@@ -56,21 +56,74 @@ type DisplayUnits = {
   bloodSugar: SugarUnit
 }
 
-/** ----------------------------- UI bits ----------------------------- */
-type UnitChip = { label: string; value: string }
-const UnitChips = ({ options, value, onChange }: { options: UnitChip[], value: string, onChange: (v: any) => void }) => (
-  <View style={styles.unitRow}>
-    {options.map(o => (
-      <TouchableOpacity
-        key={o.value}
-        onPress={() => onChange(o.value)}
-        style={[styles.unitChip, value === o.value && styles.unitChipSelected]}
-      >
-        <Text style={[styles.unitChipText, value === o.value && styles.unitChipTextSelected]}>{o.label}</Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-)
+
+type UnitOption<T extends string> = { label: string; value: T }
+
+function UnitDropdown<T extends string>({
+  rowKey,
+  label,
+  value,
+  options,
+  openKey,
+  setOpenKey,
+  onChange,
+  zIndexBase = 1000,
+}: {
+  rowKey: string
+  label: string
+  value: T
+  options: UnitOption<T>[]
+  openKey: string | null
+  setOpenKey: (k: string | null) => void
+  onChange: (v: T) => void
+  zIndexBase?: number
+}) {
+  const isOpen = openKey === rowKey
+  return (
+    <View style={[styles.dropdownRow, isOpen && { zIndex: zIndexBase, elevation: 16 }]}>
+      <Text style={styles.toolbarLabel}>{label}</Text>
+
+      <View style={{ position: 'relative' }}>
+        <TouchableOpacity
+          style={[styles.dropdownButton, isOpen && styles.dropdownButtonActive]}
+          onPress={() => setOpenKey(isOpen ? null : rowKey)}
+          accessibilityRole="button"
+        >
+          <Text style={styles.dropdownButtonText}>
+            {options.find(o => o.value === value)?.label}
+          </Text>
+          <MaterialIcons name="arrow-drop-down" size={18} color="#333" />
+        </TouchableOpacity>
+
+        {isOpen ? (
+          <>
+            {/* backdrop to capture outside taps */}
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpenKey(null)} />
+            <View style={styles.dropdownList}>
+              {options.map(o => {
+                const selected = o.value === value
+                return (
+                  <TouchableOpacity
+                    key={`${rowKey}-${o.value}`}
+                    style={[styles.dropdownItem, selected && styles.dropdownItemSelected]}
+                    onPress={() => {
+                      onChange(o.value)
+                      setOpenKey(null)
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, selected && styles.dropdownItemTextSelected]}>
+                      {o.label}
+                    </Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
+          </>
+        ) : null}
+      </View>
+    </View>
+  )
+}
 
 const PatientHistoryScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -84,7 +137,7 @@ const PatientHistoryScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const patient = userProfile as Patient
 
-  // global display unit toolbar (local only)
+  
   const [du, setDu] = useState<DisplayUnits>({
     weight: 'kg',
     height: 'cm',
@@ -92,6 +145,8 @@ const PatientHistoryScreen: React.FC = () => {
     bloodPressure: 'mmHg',
     bloodSugar: 'mg_dL',
   })
+  
+  const [openKey, setOpenKey] = useState<string | null>(null)
 
   useEffect(() => {
     loadVisits()
@@ -256,47 +311,59 @@ const PatientHistoryScreen: React.FC = () => {
     </View>
   )
 
+  /** ---------- Unit Panel ---------- */
   const renderDisplayToolbar = () => (
-    <View style={styles.toolbar}>
-      <View style={styles.toolbarRow}>
-        <Text style={styles.toolbarLabel}>Weight</Text>
-        <UnitChips
-          options={[{label:'kg',value:'kg'},{label:'lb',value:'lb'},{label:'st',value:'st'}]}
-          value={du.weight} onChange={(v)=>setDu(prev=>({...prev, weight: v as WeightUnit}))}
-        />
-      </View>
-
-      <View style={styles.toolbarRow}>
-        <Text style={styles.toolbarLabel}>Height</Text>
-        <UnitChips
-          options={[{label:'cm',value:'cm'},{label:'in',value:'in'},{label:'ft',value:'ft'}]}
-          value={du.height} onChange={(v)=>setDu(prev=>({...prev, height: v as HeightUnit}))}
-        />
-      </View>
-
-      <View style={styles.toolbarRow}>
-        <Text style={styles.toolbarLabel}>Temperature</Text>
-        <UnitChips
-          options={[{label:'°C',value:'C'},{label:'°F',value:'F'}]}
-          value={du.temperature} onChange={(v)=>setDu(prev=>({...prev, temperature: v as TempUnit}))}
-        />
-      </View>
-
-      <View style={styles.toolbarRow}>
-        <Text style={styles.toolbarLabel}>Blood Pressure</Text>
-        <UnitChips
-          options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]}
-          value={du.bloodPressure} onChange={(v)=>setDu(prev=>({...prev, bloodPressure: v as BPUnit}))}
-        />
-      </View>
-
-      <View style={styles.toolbarRow}>
-        <Text style={styles.toolbarLabel}>Blood Sugar</Text>
-        <UnitChips
-          options={[{label:'mg/dL',value:'mg_dL'},{label:'mmol/L',value:'mmol_L'}]}
-          value={du.bloodSugar} onChange={(v)=>setDu(prev=>({...prev, bloodSugar: v as SugarUnit}))}
-        />
-      </View>
+    <View style={styles.unitPanel}>
+      <UnitDropdown
+        rowKey="weight"
+        label="Weight"
+        value={du.weight}
+        openKey={openKey}
+        setOpenKey={setOpenKey}
+        onChange={(v) => setDu(prev => ({ ...prev, weight: v as WeightUnit }))}
+        options={[{ label: 'kg', value: 'kg' }, { label: 'lb', value: 'lb' }, { label: 'st', value: 'st' }]}
+        zIndexBase={1050}
+      />
+      <UnitDropdown
+        rowKey="height"
+        label="Height"
+        value={du.height}
+        openKey={openKey}
+        setOpenKey={setOpenKey}
+        onChange={(v) => setDu(prev => ({ ...prev, height: v as HeightUnit }))}
+        options={[{ label: 'cm', value: 'cm' }, { label: 'in', value: 'in' }, { label: 'ft', value: 'ft' }]}
+        zIndexBase={1040}
+      />
+      <UnitDropdown
+        rowKey="temp"
+        label="Temperature"
+        value={du.temperature}
+        openKey={openKey}
+        setOpenKey={setOpenKey}
+        onChange={(v) => setDu(prev => ({ ...prev, temperature: v as TempUnit }))}
+        options={[{ label: '°C', value: 'C' }, { label: '°F', value: 'F' }]}
+        zIndexBase={1030}
+      />
+      <UnitDropdown
+        rowKey="bp"
+        label="Blood Pressure"
+        value={du.bloodPressure}
+        openKey={openKey}
+        setOpenKey={setOpenKey}
+        onChange={(v) => setDu(prev => ({ ...prev, bloodPressure: v as BPUnit }))}
+        options={[{ label: 'mmHg', value: 'mmHg' }, { label: 'kPa', value: 'kPa' }]}
+        zIndexBase={1020}
+      />
+      <UnitDropdown
+        rowKey="sugar"
+        label="Blood Sugar"
+        value={du.bloodSugar}
+        openKey={openKey}
+        setOpenKey={setOpenKey}
+        onChange={(v) => setDu(prev => ({ ...prev, bloodSugar: v as SugarUnit }))}
+        options={[{ label: 'mg/dL', value: 'mg_dL' }, { label: 'mmol/L', value: 'mmol_L' }]}
+        zIndexBase={1010}
+      />
     </View>
   )
 
@@ -353,7 +420,7 @@ const PatientHistoryScreen: React.FC = () => {
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'doctor' && styles.activeTab]}
-          onPress={() => setActiveTab('doctor')}
+          onPress={() => { setActiveTab('doctor'); setOpenKey(null) }}
         >
           <MaterialIcons name="local-hospital" size={20} color={activeTab === 'doctor' ? '#4285F4' : '#999999'} />
           <Text style={[styles.tabText, activeTab === 'doctor' && styles.activeTabText]}>Visits</Text>
@@ -361,7 +428,7 @@ const PatientHistoryScreen: React.FC = () => {
 
         <TouchableOpacity
           style={[styles.tab, activeTab === 'ai' && styles.activeTab]}
-          onPress={() => setActiveTab('ai')}
+          onPress={() => { setActiveTab('ai'); setOpenKey(null) }}
         >
           <MaterialIcons name="psychology" size={20} color={activeTab === 'ai' ? '#4285F4' : '#999999'} />
           <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>AI Sessions</Text>
@@ -385,7 +452,17 @@ const PatientHistoryScreen: React.FC = () => {
         customSize={56}
         color="#FFFFFF"
         icon={() => (
-          <Text style={{ fontSize: 28, marginLeft: 5, marginTop: -5, fontWeight: 'bold', color: '#FFFFFF' }}>+</Text>
+          <Text
+            style={{
+              fontSize: 28,
+              marginLeft: 5,
+              marginTop: -5,
+              fontWeight: 'bold',
+              color: '#FFFFFF'
+            }}
+          >
+            +
+          </Text>
         )}
       />
     </SafeAreaView>
@@ -393,7 +470,11 @@ const PatientHistoryScreen: React.FC = () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', marginTop: -55 },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    marginTop: -55
+  },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -402,82 +483,285 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
   },
-  unitRow: {
+
+ 
+  unitPanel: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  dropdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  unitChip: {
+    justifyContent: 'space-between',
     paddingVertical: 6,
-    paddingHorizontal: 14,
+  },
+  toolbarLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+    marginRight: 8
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 16,
     backgroundColor: '#F5F5F5',
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginHorizontal: 2,
   },
-  unitChipSelected: {
-    backgroundColor: '#4285F4',
-    borderColor: '#4285F4',
+  dropdownButtonActive: {
+    borderColor: '#4285F4'
   },
-  unitChipText: {
+  dropdownButtonText: {
     fontSize: 14,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  unitChipTextSelected: {
-    color: '#FFFFFF',
+    color: '#333',
     fontWeight: '600',
+    marginRight: 2
   },
-  tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, paddingHorizontal: 16, marginHorizontal: 4, borderRadius: 8,
-  },
-  activeTab: { backgroundColor: '#F0F7FF' },
-  tabText: { marginLeft: 8, fontSize: 16, color: '#999999', fontWeight: '500' },
-  activeTabText: { color: '#4285F4', fontWeight: '600' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
-  loadingText: { marginTop: 16, fontSize: 16, color: '#666666' },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-
-  /* toolbar */
-  toolbar: {
+  dropdownList: {
+    position: 'absolute',
+    top: 36,
+    right: 0,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 12,
-    padding: 12, marginBottom: 16, gap: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    zIndex: 9999,
   },
-  toolbarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  toolbarLabel: { fontSize: 14, fontWeight: '600', color: '#333333', marginRight: 8 },
+  dropdownItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 90
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#E9F2FF'
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    color: '#333'
+  },
+  dropdownItemTextSelected: {
+    color: '#1a73e8',
+    fontWeight: '700'
+  },
 
-  /* visit card (unchanged) */
-  visitCard: { backgroundColor: '#FAFAFA', borderRadius: 12, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E8E8E8' },
-  visitHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  visitDateContainer: { flex: 1 },
-  visitDate: { fontSize: 18, fontWeight: '600', color: '#333333', marginBottom: 4 },
-  visitTime: { fontSize: 14, color: '#666666' },
-  editButton: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F7FF', alignItems: 'center', justifyContent: 'center' },
-  doctorInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 1, borderColor: '#E8E8E8' },
-  doctorIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F7FF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  doctorDetails: { flex: 1 },
-  doctorName: { fontSize: 16, fontWeight: '600', color: '#333333', marginBottom: 2 },
-  doctorSpecialization: { fontSize: 14, color: '#666666' },
-  vitalsSection: { marginBottom: 16 },
-  vitalsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  vitalChip: { backgroundColor: '#FFFFFF', borderRadius: 8, padding: 8, borderWidth: 1, borderColor: '#E8E8E8', minWidth: 80, alignItems: 'center' },
-  alertChip: { backgroundColor: '#FFF5F5', borderColor: '#FFB3B3' },
-  vitalValue: { fontSize: 16, fontWeight: '600', color: '#333333' },
-  vitalUnit: { fontSize: 12, color: '#666666', marginTop: 2 },
-  alertText: { color: '#D32F2F' },
-  section: { marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#333333', marginBottom: 8 },
-  sectionContent: { fontSize: 14, color: '#666666', lineHeight: 20 },
-  medicationSection: { marginBottom: 16 },
-  medicationContent: { fontSize: 14, color: '#2E7D32', backgroundColor: '#F0F8F0', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E8F5E8', lineHeight: 20 },
-  emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F8F9FA', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  emptyTitle: { fontSize: 20, fontWeight: '600', color: '#333333', marginBottom: 8, textAlign: 'center' },
-  emptyText: { fontSize: 16, color: '#666666', textAlign: 'center', lineHeight: 24 },
-  fab: { position: 'absolute', margin: 20, right: 0, bottom: 0, backgroundColor: '#4285F4' },
+  /* visit tabs */
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: '#F0F7FF'
+  },
+  tabText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#999999',
+    fontWeight: '500'
+  },
+  activeTabText: {
+    color: '#4285F4',
+    fontWeight: '600'
+  },
+
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666666'
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100
+  },
+
+  
+  visitCard: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E8E8E8'
+  },
+  visitHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16
+  },
+  visitDateContainer: {
+    flex: 1
+  },
+  visitDate: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 4
+  },
+  visitTime: {
+    fontSize: 14,
+    color: '#666666'
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F7FF',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  doctorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8'
+  },
+  doctorIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F0F7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12
+  },
+  doctorDetails: {
+    flex: 1
+  },
+  doctorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 2
+  },
+  doctorSpecialization: {
+    fontSize: 14,
+    color: '#666666'
+  },
+  vitalsSection: {
+    marginBottom: 16
+  },
+  vitalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  vitalChip: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    minWidth: 80,
+    alignItems: 'center'
+  },
+  alertChip: {
+    backgroundColor: '#FFF5F5',
+    borderColor: '#FFB3B3'
+  },
+  vitalValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333'
+  },
+  vitalUnit: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2
+  },
+  alertText: {
+    color: '#D32F2F'
+  },
+  section: {
+    marginBottom: 16
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8
+  },
+  sectionContent: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20
+  },
+  medicationSection: {
+    marginBottom: 16
+  },
+  medicationContent: {
+    fontSize: 14,
+    color: '#2E7D32',
+    backgroundColor: '#F0F8F0',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E8F5E8',
+    lineHeight: 20
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 32
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F8F9FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333333',
+    marginBottom: 8,
+    textAlign: 'center'
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    lineHeight: 24
+  },
+  fab: {
+    position: 'absolute',
+    margin: 20,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#4285F4'
+  },
 })
 
 export default PatientHistoryScreen
