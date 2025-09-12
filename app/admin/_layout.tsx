@@ -4,6 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons'
 import { useAuth } from '../../contexts/AuthContext'
 import { PaperProvider } from 'react-native-paper'
 import { AppTheme } from '../../lib/theme'
+import { supabase }  from '~/lib/supabase'
+
 
 export default function AdminLayout() {
   const { user, userRole, loading } = useAuth()

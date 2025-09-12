@@ -194,7 +194,7 @@ export interface ChatMessage {
 export interface UserRole {
   id: string
   auth_user_id: string
-  role: 'patient' | 'field_doctor' | 'admin'
+  role: 'patient' | 'field_doctor' | 'admin' | 'org_admin' 
   created_at: string
 }
 
