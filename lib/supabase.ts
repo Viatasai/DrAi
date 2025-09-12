@@ -173,7 +173,7 @@ export interface Visit {
   treatment_notes?: string
   prescribed_medications?: string
   follow_up_instructions?: string
-
+chat_session_id?: string | null
   visit_type?: 'in_person' | 'virtual_consultation' | 'self_recorded' | string
   location?: VisitLocation | null
 
@@ -194,7 +194,7 @@ export interface ChatMessage {
 export interface UserRole {
   id: string
   auth_user_id: string
-  role: 'patient' | 'field_doctor' | 'admin'
+  role: 'patient' | 'field_doctor' | 'admin' | 'org_admin' 
   created_at: string
 }
 

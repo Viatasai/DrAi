@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '../../utils/toast'
+import { supabase } from '~/lib/supabase'
 
 const { width } = Dimensions.get('window')
 
@@ -15,10 +16,12 @@ const SignUpScreen: React.FC = () => {
     role,
     as,
     return: returnToParam,
+    orgId,
   } = useLocalSearchParams<{
     role: string
     as?: string
     return?: string
+    orgId?: string
   }>()
   const returnTo = typeof returnToParam === 'string' ? returnToParam : undefined
   const launchedByDoctor = as === 'doctor'
@@ -48,6 +51,13 @@ const SignUpScreen: React.FC = () => {
   const [specialization, setSpecialization] = useState('')
   const [licenseNumber, setLicenseNumber] = useState('')
   const [yearsOfExperience, setYearsOfExperience] = useState('')
+
+  // Organization-specific fields
+  const [orgName, setOrgName] = useState('')
+  const [orgAddress, setOrgAddress] = useState('')
+  const [orgPhone, setOrgPhone] = useState('')
+  const [orgEmail, setOrgEmail] = useState('')
+  const [orgLicenseInfo, setOrgLicenseInfo] = useState('')
 
   const genderOptions = [
     { value: 'male', label: 'Male' },
@@ -109,13 +119,59 @@ const SignUpScreen: React.FC = () => {
       }
     }
 
+    if (role === 'organization') {
+      if (!orgName.trim()) {
+        showToast.validationError('Organization name is required')
+        return false
+      }
+      if (!orgAddress.trim()) {
+        showToast.validationError('Organization address is required')
+        return false
+      }
+      if (!orgPhone.trim()) {
+        showToast.validationError('Organization phone is required')
+        return false
+      }
+      if (!orgEmail.trim()) {
+        showToast.validationError('Organization email is required')
+        return false
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(orgEmail)) {
+        showToast.validationError('Please enter a valid organization email address')
+        return false
+      }
+    }
+
     return true
+  }
+
+  const createOrganization = async (orgData: any) => {
+    try {
+      const { data, error } = await supabase
+      .from('organizations')
+      .insert(orgData)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+      return { data, error: null }
+    } catch (error) {
+      console.error('Organization creation error:', error)
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'Network error occurred',
+        },
+      }
+    }
   }
 
   const createUserWithEdgeFunction = async (
     email: string,
     password: string,
     userData: any,
+    orgId?: string,
   ) => {
     try {
       const response = await fetch(
@@ -130,6 +186,7 @@ const SignUpScreen: React.FC = () => {
             email,
             password,
             userData,
+            orgId,
           }),
         },
       )
@@ -177,17 +234,67 @@ const SignUpScreen: React.FC = () => {
         userData.specialization = specialization.trim()
         userData.licenseNumber = licenseNumber.trim()
         userData.yearsOfExperience = yearsOfExperience.trim() || null
+      } else if (role === 'organization') {
+        // For organization, user will be org_admin
+        userData.role = 'org_admin'
       } else if (role === 'admin') {
         userData.permissions = []
       }
 
       console.log('Signup attempt:', { email: email.trim(), role, userData })
 
-      // Call the edge function instead of signUp
+      let finalOrgId = orgId || null // Use provided orgId or null
+      
+      // Step 1: Create organization if role is 'organization'
+      if (role === 'organization') {
+        const orgData = {
+          name: orgName.trim(),
+          address: orgAddress.trim(),
+          phone: orgPhone.trim(),
+          type:"1"
+         
+        }
+        
+        const { error: orgError, data: orgResult } = await createOrganization(orgData)
+        
+        if (orgError) {
+          console.error('Organization creation error:', orgError)
+          showToast.error(orgError.message || 'Failed to create organization')
+          return
+        }
+        
+        finalOrgId = orgResult.id
+        console.log('Organization created successfully:', finalOrgId)
+      }
+      if(role=== 'field_doctor'){
+        const orgData = {
+          name: name.trim(),
+          // address: orgAddress.trim(),
+          phone: phone.trim(),
+          type:"2"
+         
+        }
+        
+        const { error: orgError, data: orgResult } = await createOrganization(orgData)
+        
+        if (orgError) {
+          console.error('Organization creation error for for doctor:', orgError)
+          showToast.error(orgError.message || 'Failed to create organization')
+          return
+        }
+        
+        finalOrgId = orgResult.id
+        console.log('Organization created successfully:', finalOrgId)
+
+      }
+
+
+      // Step 2: Call the edge function to create user (and add to org if orgId exists)
       const { error, data } = await createUserWithEdgeFunction(
         email.trim().toLowerCase(),
         password,
         userData,
+        finalOrgId,
       )
 
       if (error) {
@@ -217,9 +324,12 @@ const SignUpScreen: React.FC = () => {
 
         // ⭐ Success flow - no need to sign out since user was never logged in
         if (launchedByDoctor) {
-          console.log('Patient account created by doctor')
+          console.log('Patient account created by doctor', { orgId: finalOrgId })
+          const message = finalOrgId 
+            ? 'Patient account created successfully and assigned to organization. They can now sign in from the patient app.'
+            : 'Patient account created successfully. They can now sign in from the patient app.'
           showToast.success(
-            'Patient account created successfully. They can now sign in from the patient app.',
+            message,
             'Account Created',
             () => router.replace(returnTo || '/doctor'),
           )
@@ -245,6 +355,8 @@ const SignUpScreen: React.FC = () => {
         return 'Patient Sign Up'
       case 'field_doctor':
         return 'Doctor Sign Up'
+      case 'organization':
+        return 'Organization Sign Up'
       case 'admin':
         return 'Admin Sign Up'
       default:
@@ -437,6 +549,54 @@ const SignUpScreen: React.FC = () => {
               onChangeText={setYearsOfExperience}
               placeholder="Years of practice"
               keyboardType="numeric"
+            />
+          </>
+        )}
+
+        {/* Organization-specific fields */}
+        {role === 'organization' && (
+          <>
+            <CleanTextInput
+              label="Organization Name"
+              value={orgName}
+              onChangeText={setOrgName}
+              placeholder="Enter organization name"
+              autoCapitalize="words"
+            />
+
+            <CleanTextInput
+              label="Organization Address"
+              value={orgAddress}
+              onChangeText={setOrgAddress}
+              placeholder="Enter organization address"
+              multiline
+              numberOfLines={2}
+            />
+
+            <CleanTextInput
+              label="Organization Phone"
+              value={orgPhone}
+              onChangeText={setOrgPhone}
+              placeholder="Enter organization phone"
+              keyboardType="phone-pad"
+            />
+
+            <CleanTextInput
+              label="Organization Email"
+              value={orgEmail}
+              onChangeText={setOrgEmail}
+              placeholder="Enter organization email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <CleanTextInput
+              label="License Information (Optional)"
+              value={orgLicenseInfo}
+              onChangeText={setOrgLicenseInfo}
+              placeholder="Organization license details"
+              multiline
+              numberOfLines={2}
             />
           </>
         )}

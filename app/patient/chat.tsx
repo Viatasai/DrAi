@@ -122,6 +122,7 @@ const PatientChatScreen: React.FC = () => {
 
       data?.forEach((message) => {
         if (!message.session_id) return
+        if (message.session_id.includes("doctor")) return;
 
         if (!sessionMap.has(message.session_id)) {
           sessionMap.set(message.session_id, {
@@ -484,6 +485,7 @@ const PatientChatScreen: React.FC = () => {
                   placeholder="Ask about your health..."
                   mode="outlined"
                   multiline
+
                   maxLength={500}
                   style={styles.textInput}
                   right={
@@ -501,9 +503,7 @@ const PatientChatScreen: React.FC = () => {
             <Animated.View
               style={[
                 styles.drawer,
-                {
-                  transform: [{ translateX: drawerTranslateX }],
-                },
+                { transform: [{ translateX: drawerTranslateX }], zIndex: 2 }, // on top,
               ]}
             >
               <View style={styles.drawerHeader}>
@@ -535,28 +535,33 @@ const PatientChatScreen: React.FC = () => {
                 ) : (
                   sessions.map((session) => (
                     <TouchableOpacity
-                      key={session.session_id}
-                      style={[
-                        styles.sessionItem,
-                        currentSessionId === session.session_id && styles.activeSession,
-                      ]}
-                      onPress={() => switchToSession(session.session_id)}
-                    >
-                      <View style={styles.sessionInfo}>
-                        <Text style={styles.sessionDate}>
-                          {formatSessionDate(session.created_at)}
-                        </Text>
-                        <Text style={styles.sessionPreview} numberOfLines={2}>
-                          {session.last_message}
-                        </Text>
-                        <Text style={styles.sessionMeta}>
-                          {session.message_count} messages
-                        </Text>
-                      </View>
-                      {currentSessionId === session.session_id && (
-                        <MaterialIcons name="check-circle" size={20} color="#2196F3" />
-                      )}
-                    </TouchableOpacity>
+                    key={session.session_id}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.sessionItem,
+                      currentSessionId === session.session_id && styles.activeSession,
+                    ]}
+                    onPress={(e) => {
+                     toggleDrawer()
+                      switchToSession(session.session_id);
+               console.log(drawerVisible,'drawwwwww')
+                    }}
+                  >
+                    <View style={styles.sessionInfo}>
+                      <Text style={styles.sessionDate}>
+                        {formatSessionDate(session.created_at)}
+                      </Text>
+                      <Text style={styles.sessionPreview} numberOfLines={2}>
+                        {session.last_message}
+                      </Text>
+                      <Text style={styles.sessionMeta}>
+                        {session.message_count} messages
+                      </Text>
+                    </View>
+                    {currentSessionId === session.session_id && (
+                      <MaterialIcons name="check-circle" size={20} color="#2196F3" />
+                    )}
+                  </TouchableOpacity>
                   ))
                 )}
               </ScrollView>
@@ -565,7 +570,7 @@ const PatientChatScreen: React.FC = () => {
             {/* Drawer Overlay */}
             {drawerVisible && (
               <TouchableOpacity
-                style={styles.overlay}
+              style={[styles.overlay, { left: DRAWER_WIDTH, zIndex: 1 }]}
                 onPress={toggleDrawer}
                 activeOpacity={1}
               />

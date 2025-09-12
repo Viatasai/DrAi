@@ -33,7 +33,7 @@ interface VitalData {
   patient_age?: number
   patient_gender?: string
   patient_id?: string
-  visit_id?: string
+  visitId?: string
 }
 
 interface ChatBubbleProps {
@@ -78,7 +78,7 @@ const DoctorAIChatRoomScreen: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null)
 
   const doctor = userProfile as FieldDoctor
-
+  const chatSessionId=useLocalSearchParams().sessionId as string
   // Generate a unique session ID for doctor-patient consultation
   const generateSessionId = (patientId?: string): string => {
     const timestamp = Date.now()
@@ -88,7 +88,13 @@ const DoctorAIChatRoomScreen: React.FC = () => {
   }
 
   useEffect(() => {
-    initializeChat()
+    if(chatSessionId){
+      console.log(chatSessionId,'sedf')
+   loadChatHistory(chatSessionId).then(()=>{setCurrentSessionId(chatSessionId);setInitialLoading(false)})
+    }
+    else{
+      initializeChat()
+    }
   }, [])
 
   useEffect(() => {
@@ -108,6 +114,8 @@ const DoctorAIChatRoomScreen: React.FC = () => {
 
       // Generate session ID when component mounts
       const sessionId = generateSessionId(vitals?.patient_id)
+      console.log(vitals,'vitals')
+      const {data,error}=await supabase.from('visits').update({ chat_session_id: sessionId }).eq('id', vitals?.visitId)
       setCurrentSessionId(sessionId)
       console.log('Initial doctor session ID:', sessionId)
 
@@ -255,8 +263,8 @@ Please analyze this data and provide initial diagnostic insights, potential conc
   }
 
   const loadChatHistory = async (sessionId?: string) => {
-    if (!doctor) return
-
+    // if (!doctor) return
+    console.log(sessionId,'sdf')
     const targetSessionId = sessionId || currentSessionId
     if (!targetSessionId) return
 
@@ -380,7 +388,7 @@ Please analyze this data and provide initial diagnostic insights, potential conc
             conversationHistory,
             sessionId: currentSessionId,
             vitalData: vitalData,
-            visitId: vitalData?.visit_id || null,
+            visitId: vitalData?.visitId || null,
             doctorProfile: {
               name: doctor.name,
               specialization: doctor.specialization,

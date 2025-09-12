@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase, Patient, FieldDoctor } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
+import OrganizationSelector from '~/components/OrganizationSelector'
 
 const PatientSearchScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -23,6 +24,7 @@ const PatientSearchScreen: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [showOrgSelector, setShowOrgSelector] = useState(false)
 
   const doctor = userProfile as FieldDoctor
 
@@ -35,16 +37,39 @@ const PatientSearchScreen: React.FC = () => {
   }, [searchQuery, patients])
 
   const loadPatients = async () => {
+
     try {
+
+      const {data:orgs, error: orgError } = await supabase.from('org_user_mapping').select('org_id').eq('user_id', doctor.auth_user_id)
+      const orgIds=orgs?.map(o=>o.org_id) || []
+console.log(orgIds,'dddd')
+      if (orgError) throw orgError;
+
+      const { data: patientMappings, error: patientMapError } = await supabase
+      .from('org_user_mapping')
+      .select('user_id')
+      .in('org_id', orgIds) 
+      .eq('role', 'patient');
+
+    if (patientMapError) throw patientMapError;
+
+    // Step 2: fetch patient details
+    let patientDetails: any[] = [];
+    if (patientMappings && patientMappings.length > 0) {
+      const patientIds = patientMappings.map((p) => p.user_id);
       const { data, error } = await supabase
         .from('patients')
         .select('*')
-        .order('name', { ascending: true })
+        .in('auth_user_id', patientIds);
 
-      if (error) {
-        console.error('Error loading patients:', error)
+      if (error) throw error;
+      patientDetails = data ?? [];
+    }
+
+      if (patientMapError) {
+        console.error('Error loading patients:', patientMapError)
       } else {
-        setPatients(data || [])
+        setPatients(patientDetails || [])
       }
     } catch (error) {
       console.error('Error loading patients:', error)
@@ -99,8 +124,42 @@ const PatientSearchScreen: React.FC = () => {
   }
 
   const handleCreatePatient = () => {
-    // Reuse auth/signup screen for creating a patient on behalf of doctor
-    router.push('/auth/signup?role=patient&as=doctor&return=/doctor/patient-search')
+    // Check if doctor belongs to multiple organizations
+    checkDoctorOrganizations()
+  }
+
+  const checkDoctorOrganizations = async () => {
+    try {
+      const { data: orgMappings, error } = await supabase
+        .from('org_user_mapping')
+        .select('org_id')
+        .eq('user_id', doctor.auth_user_id)
+
+      if (error) throw error
+
+      const orgIds = orgMappings?.map(mapping => mapping.org_id) || []
+
+      if (orgIds.length === 0) {
+        // No organizations - shouldn't happen, but handle gracefully
+        router.push('/auth/signup?role=patient&as=doctor&return=/doctor/patient-search')
+      } else if (orgIds.length === 1) {
+        // Only one organization - proceed directly
+        const orgId = orgIds[0]
+        router.push(`/auth/signup?role=patient&as=doctor&return=/doctor/patient-search&orgId=${orgId}`)
+      } else {
+        // Multiple organizations - show selector
+        setShowOrgSelector(true)
+      }
+    } catch (error) {
+      console.error('Error checking doctor organizations:', error)
+      // Fallback to original flow
+      router.push('/auth/signup?role=patient&as=doctor&return=/doctor/patient-search')
+    }
+  }
+
+  const handleOrganizationSelected = (orgId: string, orgName: string) => {
+    setShowOrgSelector(false)
+    router.push(`/auth/signup?role=patient&as=doctor&return=/doctor/patient-search&orgId=${orgId}`)
   }
 
   const getGenderIcon = (gender: string) => {
@@ -381,6 +440,15 @@ const PatientSearchScreen: React.FC = () => {
             +
           </Text>
         )}
+      />
+
+      {/* Organization Selector Modal */}
+      <OrganizationSelector
+        visible={showOrgSelector}
+        onDismiss={() => setShowOrgSelector(false)}
+        onSelect={handleOrganizationSelected}
+        title="Select Organization"
+        message="Choose which organization this patient will belong to:"
       />
     </SafeAreaView>
   )
