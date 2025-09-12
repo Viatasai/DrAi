@@ -1,199 +1,220 @@
-import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Card, Text, Chip } from "react-native-paper";
-import { MaterialIcons } from "@expo/vector-icons";
+import React from 'react'
+import { View, StyleSheet } from 'react-native'
+import { Text } from 'react-native-paper'
+import { MaterialIcons } from '@expo/vector-icons'
 
-interface VitalSigns {
-  weight?: number;
-  height?: number;
-  systolic_bp?: number;
-  diastolic_bp?: number;
-  heart_rate?: number;
-  temperature?: number;
-  blood_sugar?: number;
-  oxygen_saturation?: number;
-  respiratory_rate?: number;
+
+type WeightUnit = 'kg' | 'lb' | 'st'
+type HeightUnit = 'cm' | 'in' | 'ft'
+type TempUnit = 'C' | 'F'
+type BPUnit = 'mmHg' | 'kPa'
+type SugarUnit = 'mg_dL' | 'mmol_L'
+
+type DisplayUnits = {
+  weight: WeightUnit
+  height: HeightUnit
+  temperature: TempUnit
+  bloodPressure: BPUnit
+  bloodSugar: SugarUnit
 }
 
-interface VitalSignsCardProps {
-  vitals: VitalSigns;
-  title?: string;
-  showAlerts?: boolean;
+const defaultDisplay: DisplayUnits = {
+  weight: 'kg',
+  height: 'cm',
+  temperature: 'C',
+  bloodPressure: 'mmHg',
+  bloodSugar: 'mg_dL',
 }
 
-interface VitalChip {
-  label: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
-  alert?: boolean;
-  value: string | number;
+/** ---- math helpers (display-only) ---- */
+const KG_PER_LB = 0.45359237
+const KG_PER_ST = 6.35029318
+const CM_PER_IN = 2.54
+const CM_PER_FT = 30.48
+const KPA_PER_MMHG = 0.133322
+const MMOL_PER_MGDL = 1 / 18
+
+const round1 = (n: number) => Math.round(n * 10) / 10
+
+function convWeightFromKg(kg: number, to: WeightUnit) {
+  if (!Number.isFinite(kg)) return kg
+  if (to === 'kg') return kg
+  if (to === 'lb') return kg / KG_PER_LB
+  if (to === 'st') return kg / KG_PER_ST
+  return kg
+}
+function convHeightFromCm(cm: number, to: HeightUnit) {
+  if (!Number.isFinite(cm)) return cm
+  if (to === 'cm') return cm
+  if (to === 'in') return cm / CM_PER_IN
+  if (to === 'ft') return cm / CM_PER_FT
+  return cm
+}
+function convTempFromC(c: number, to: TempUnit) {
+  if (!Number.isFinite(c)) return c
+  if (to === 'C') return c
+  return c * 9 / 5 + 32
+}
+function convBPFromMmHg(mmHg: number, to: BPUnit) {
+  if (!Number.isFinite(mmHg)) return mmHg
+  if (to === 'mmHg') return mmHg
+  return mmHg * KPA_PER_MMHG
+}
+function convSugarFromMgDl(mg: number, to: SugarUnit) {
+  if (!Number.isFinite(mg)) return mg
+  if (to === 'mg_dL') return mg
+  return mg * MMOL_PER_MGDL
 }
 
-const VitalSignsCard: React.FC<VitalSignsCardProps> = ({
-  vitals,
-  title = "Vital Signs",
-  showAlerts = true,
-}) => {
-  const getVitalChips = (): VitalChip[] => {
-    const chips: VitalChip[] = [];
+type VitalChip = { label: string; unit?: string; alert?: boolean }
 
-    if (vitals.weight) {
-      chips.push({
-        label: `${vitals.weight} kg`,
-        icon: "scale",
-        value: vitals.weight,
-      });
-    }
+function buildChips(visit: any, du: DisplayUnits): VitalChip[] {
+  const chips: VitalChip[] = []
 
-    if (vitals.height) {
-      chips.push({
-        label: `${vitals.height} cm`,
-        icon: "height",
-        value: vitals.height,
-      });
-    }
-
-    if (vitals.systolic_bp && vitals.diastolic_bp) {
-      const isHigh = vitals.systolic_bp > 140 || vitals.diastolic_bp > 90;
-      const isLow = vitals.systolic_bp < 90 || vitals.diastolic_bp < 60;
-      chips.push({
-        label: `${vitals.systolic_bp}/${vitals.diastolic_bp} mmHg`,
-        icon: "favorite",
-        alert: showAlerts && (isHigh || isLow),
-        value: `${vitals.systolic_bp}/${vitals.diastolic_bp}`,
-      });
-    }
-
-    if (vitals.heart_rate) {
-      const isAbnormal = vitals.heart_rate > 100 || vitals.heart_rate < 60;
-      chips.push({
-        label: `${vitals.heart_rate} bpm`,
-        icon: "favorite",
-        alert: showAlerts && isAbnormal,
-        value: vitals.heart_rate,
-      });
-    }
-
-    if (vitals.temperature) {
-      const isHigh = vitals.temperature > 37.5;
-      const isLow = vitals.temperature < 36.0;
-      chips.push({
-        label: `${vitals.temperature}°C`,
-        icon: "thermostat",
-        alert: showAlerts && (isHigh || isLow),
-        value: vitals.temperature,
-      });
-    }
-
-    if (vitals.blood_sugar) {
-      const isHigh = vitals.blood_sugar > 180;
-      const isLow = vitals.blood_sugar < 70;
-      chips.push({
-        label: `${vitals.blood_sugar} mg/dL`,
-        icon: "water-drop",
-        alert: showAlerts && (isHigh || isLow),
-        value: vitals.blood_sugar,
-      });
-    }
-
-    if (vitals.oxygen_saturation) {
-      const isLow = vitals.oxygen_saturation < 95;
-      chips.push({
-        label: `${vitals.oxygen_saturation}%`,
-        icon: "air",
-        alert: showAlerts && isLow,
-        value: vitals.oxygen_saturation,
-      });
-    }
-
-    if (vitals.respiratory_rate) {
-      const isAbnormal =
-        vitals.respiratory_rate > 20 || vitals.respiratory_rate < 12;
-      chips.push({
-        label: `${vitals.respiratory_rate} /min`,
-        icon: "air",
-        alert: showAlerts && isAbnormal,
-        value: vitals.respiratory_rate,
-      });
-    }
-
-    return chips;
-  };
-
-  const vitalChips = getVitalChips();
-
-  if (vitalChips.length === 0) {
-    return (
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text style={styles.title}>{title}</Text>
-          <View style={styles.emptyState}>
-            <MaterialIcons name="monitor-heart" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No vital signs recorded</Text>
-          </View>
-        </Card.Content>
-      </Card>
-    );
+  // Weight (kg -> selected)
+  if (visit?.weight != null) {
+    const v = round1(convWeightFromKg(visit.weight, du.weight))
+    const unit = du.weight
+    chips.push({ label: `${v}`, unit })
   }
 
+  // Height (cm -> selected)
+  if (visit?.height != null) {
+    const v = round1(convHeightFromCm(visit.height, du.height))
+    const unit = du.height
+    chips.push({ label: `${v}`, unit })
+  }
+
+  // BP (mmHg -> selected)
+  if (visit?.systolic_bp != null && visit?.diastolic_bp != null) {
+    const s = du.bloodPressure === 'mmHg'
+      ? visit.systolic_bp
+      : round1(convBPFromMmHg(visit.systolic_bp, du.bloodPressure))
+    const d = du.bloodPressure === 'mmHg'
+      ? visit.diastolic_bp
+      : round1(convBPFromMmHg(visit.diastolic_bp, du.bloodPressure))
+    const alert = (visit.systolic_bp > 140) || (visit.diastolic_bp > 90)
+    chips.push({ label: `${s}/${d}`, unit: du.bloodPressure, alert })
+  }
+
+  // HR (integer)
+  if (visit?.heart_rate != null) {
+    chips.push({ label: `${visit.heart_rate}`, unit: 'bpm' })
+  }
+
+  // Temperature (°C -> selected)
+  if (visit?.temperature != null) {
+    const v = round1(convTempFromC(visit.temperature, du.temperature))
+    const alert = du.temperature === 'C' ? visit.temperature > 37.5 : v > 99.5
+    chips.push({ label: `${v}°`, unit: du.temperature, alert })
+  }
+
+  // Blood sugar (mg/dL -> selected)
+  if (visit?.blood_sugar != null) {
+    const v = round1(convSugarFromMgDl(visit.blood_sugar, du.bloodSugar))
+    const alert = du.bloodSugar === 'mg_dL' ? visit.blood_sugar > 180 : v > 10
+    chips.push({ label: `${v}`, unit: du.bloodSugar, alert })
+  }
+
+  // SpO2
+  if (visit?.oxygen_saturation != null) {
+    chips.push({ label: `${visit.oxygen_saturation}%`, unit: 'O₂' })
+  }
+
+  return chips
+}
+
+const VitalSignsCard: React.FC<{
+  visit: any
+  title?: string
+  displayUnits?: Partial<DisplayUnits>
+}> = ({ visit, title = 'Vitals', displayUnits }) => {
+  const du: DisplayUnits = { ...defaultDisplay, ...(displayUnits || {}) }
+  const chips = buildChips(visit, du)
+
+  if (!chips.length) return null
+
   return (
-    <Card style={styles.card}>
-      <Card.Content>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.chipsContainer}>
-          {vitalChips.map((chip, index) => (
-            <Chip
-              key={index}
-              mode="outlined"
-              compact
-              style={[
-                styles.chip,
-                chip.alert ? styles.alertChip : styles.normalChip,
-              ]}
-              icon={chip.icon}
-            >
-              {chip.label}
-            </Chip>
-          ))}
+    <View style={styles.card}>
+      <View style={styles.headerRow}>
+        <View style={styles.iconPill}>
+          <MaterialIcons name="monitor-heart" size={16} color="#D32F2F" />
         </View>
-      </Card.Content>
-    </Card>
-  );
-};
+        <Text style={styles.title}>{title}</Text>
+      </View>
+
+      <View style={styles.grid}>
+        {chips.map((c, i) => (
+          <View key={i} style={[styles.chip, c.alert && styles.alertChip]}>
+            <Text style={[styles.value, c.alert && styles.alertText]}>{c.label}</Text>
+            {c.unit ? (
+              <Text style={[styles.unit, c.alert && styles.alertText]}>{c.unit}</Text>
+            ) : null}
+          </View>
+        ))}
+      </View>
+    </View>
+  )
+}
 
 const styles = StyleSheet.create({
   card: {
-    elevation: 2,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    padding: 16,
+    gap: 12,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  iconPill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFF0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
   },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   chip: {
-    marginBottom: 8,
-  },
-  normalChip: {
-    backgroundColor: "#E3F2FD",
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    minWidth: 80,
+    alignItems: 'center',
   },
   alertChip: {
-    backgroundColor: "#FFEBEE",
-    borderColor: "#f44336",
+    backgroundColor: '#FFF5F5',
+    borderColor: '#FFB3B3',
   },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 32,
-  },
-  emptyText: {
-    marginTop: 16,
-    color: "#666",
+  value: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#333333',
   },
-});
+  unit: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  alertText: {
+    color: '#D32F2F',
+  },
+})
 
-export default VitalSignsCard;
+export default VitalSignsCard

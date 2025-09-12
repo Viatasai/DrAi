@@ -1,15 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   RefreshControl,
   TouchableOpacity,
+  Pressable,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { Text, Button, ActivityIndicator } from "react-native-paper";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, router } from "expo-router";
+import { router } from "expo-router";
 import {
   supabase,
   Patient,
@@ -23,6 +25,96 @@ type ViewKey = "trends" | "history" | "profile";
 interface PatientDetailsWrapperProps {
   patient_id: string;
   view: string;
+}
+
+const LB_PER_KG = 2.2046226218;
+const KG_PER_ST = 6.35029318;
+const MMHG_PER_KPA = 7.50061683;
+const MGDL_PER_MMOLL = 18;
+
+const fromKg = (kg: number, u: "kg" | "lb" | "st") =>
+  u === "kg" ? kg : u === "lb" ? kg * LB_PER_KG : kg / KG_PER_ST;
+
+const fromCm = (cm: number, u: "cm" | "in" | "ft") =>
+  u === "cm" ? cm : u === "in" ? cm / 2.54 : cm / 30.48;
+
+const fromMmHg = (mmHg: number, u: "mmHg" | "kPa") =>
+  u === "mmHg" ? mmHg : mmHg / MMHG_PER_KPA;
+
+const fromC = (c: number, u: "C" | "F") => (u === "C" ? c : c * (9 / 5) + 32);
+
+const fromMgdl = (mgdl: number, u: "mg_dL" | "mmol_L") =>
+  u === "mg_dL" ? mgdl : mgdl / MGDL_PER_MMOLL;
+
+const fmt = (n: number, d = 2) =>
+  Number.isFinite(n) ? Number(n.toFixed(d)).toString() : "";
+
+/* ---------- Small custom dropdown (single-open, no external deps) ---------- */
+type UnitOption<T extends string> = { label: string; value: T };
+
+function UnitDropdown<T extends string>({
+  rowKey,
+  label,
+  value,
+  options,
+  openKey,
+  setOpenKey,
+  onChange,
+  zIndexBase = 1000,
+}: {
+  rowKey: string;
+  label: string;
+  value: T;
+  options: UnitOption<T>[];
+  openKey: string | null;
+  setOpenKey: (k: string | null) => void;
+  onChange: (v: T) => void;
+  zIndexBase?: number;
+}) {
+  const isOpen = openKey === rowKey;
+  return (
+    <View style={[styles.dropdownRow, isOpen && { zIndex: zIndexBase, elevation: 16 }]}>
+      <Text style={styles.panelLabel}>{label}</Text>
+
+      <View style={{ position: "relative" }}>
+        <TouchableOpacity
+          style={[styles.dropdownButton, isOpen && styles.dropdownButtonActive]}
+          onPress={() => setOpenKey(isOpen ? null : rowKey)}
+        >
+          <Text style={styles.dropdownButtonText}>
+            {options.find(o => o.value === value)?.label}
+          </Text>
+          <MaterialIcons name="arrow-drop-down" size={18} color="#333" />
+        </TouchableOpacity>
+
+        {isOpen ? (
+          <>
+            
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setOpenKey(null)} />
+            <View style={styles.dropdownList}>
+              {options.map(o => {
+                const selected = o.value === value;
+                return (
+                  <TouchableOpacity
+                    key={`${rowKey}-${o.value}`}
+                    style={[styles.dropdownItem, selected && styles.dropdownItemSelected]}
+                    onPress={() => {
+                      onChange(o.value);
+                      setOpenKey(null);
+                    }}
+                  >
+                    <Text style={[styles.dropdownItemText, selected && styles.dropdownItemTextSelected]}>
+                      {o.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        ) : null}
+      </View>
+    </View>
+  );
 }
 
 const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
@@ -43,6 +135,15 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
   const [filteredAiSessions, setFilteredAiSessions] = useState<Visit[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  /* ---------- Global display-unit state (History -> Visits only) ---------- */
+  const [dispWeight, setDispWeight] = useState<"kg" | "lb" | "st">("kg");
+  const [dispHeight, setDispHeight] = useState<"cm" | "in" | "ft">("cm");
+  const [dispBP, setDispBP] = useState<"mmHg" | "kPa">("mmHg");
+  const [dispTemp, setDispTemp] = useState<"C" | "F">("C");
+  const [dispSugar, setDispSugar] = useState<"mg_dL" | "mmol_L">("mg_dL");
+  const [openKey, setOpenKey] = useState<string | null>(null); // only one dropdown open
+  const [unitsModal, setUnitsModal] = useState(false);
 
   useEffect(() => {
     if (patient_id) loadPatientData(patient_id);
@@ -79,7 +180,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
           `
           *,
           field_doctors (name, specialization)
-        `,
+        `
         )
         .eq("patient_id", patientId)
         .order("visit_date", { ascending: false });
@@ -123,32 +224,41 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
       minute: "2-digit",
     });
 
+  
   const getVitalChips = (visit: Visit) => {
     const vitals: { label: string; unit?: string; alert?: boolean }[] = [];
-    if (visit.weight) vitals.push({ label: `${visit.weight} kg` });
+    if (visit.weight != null) {
+      const w = fromKg(visit.weight, dispWeight);
+      vitals.push({ label: `${fmt(w)} ${dispWeight}` });
+    }
     if (visit.systolic_bp && visit.diastolic_bp) {
+      const s = fromMmHg(visit.systolic_bp, dispBP);
+      const d = fromMmHg(visit.diastolic_bp, dispBP);
       const isHigh = visit.systolic_bp > 140 || visit.diastolic_bp > 90;
       vitals.push({
-        label: `${visit.systolic_bp}/${visit.diastolic_bp}`,
-        unit: "mmHg",
+        label: `${fmt(s, dispBP === "kPa" ? 1 : 0)}/${fmt(
+          d,
+          dispBP === "kPa" ? 1 : 0
+        )}`,
+        unit: dispBP,
         alert: isHigh,
       });
     }
-    if (visit.heart_rate)
+    if (visit.heart_rate != null)
       vitals.push({ label: `${visit.heart_rate}`, unit: "bpm" });
-    if (visit.temperature) {
-      const isHigh = visit.temperature > 37.5;
-      vitals.push({ label: `${visit.temperature}°C`, alert: isHigh });
+    if (visit.temperature != null) {
+      const t = fromC(visit.temperature, dispTemp);
+      vitals.push({ label: `${fmt(t, 1)}°${dispTemp}` });
     }
-    if (visit.blood_sugar) {
-      const isHigh = visit.blood_sugar > 180;
+    if (visit.blood_sugar != null) {
+      const b = fromMgdl(visit.blood_sugar, dispSugar);
       vitals.push({
-        label: `${visit.blood_sugar}`,
-        unit: "mg/dL",
-        alert: isHigh,
+        label: `${fmt(b, dispSugar === "mmol_L" ? 1 : 0)}`,
+        unit: dispSugar === "mg_dL" ? "mg/dL" : "mmol/L",
+        alert: visit.blood_sugar > 180,
       });
     }
-    if (visit.oxygen_saturation)
+    if (visit.oxygen_saturation != null)
       vitals.push({ label: `${visit.oxygen_saturation}%`, unit: "O₂" });
     return vitals;
   };
@@ -312,7 +422,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
         ) : null}
       </View>
 
-      {/* Doctor Info */}
+      
       {(visit as any).field_doctors ? (
         <View style={styles.doctorInfo}>
           <View style={styles.doctorIcon}>
@@ -417,7 +527,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, historyTab === "doctor" && styles.activeTab]}
-          onPress={() => setHistoryTab("doctor")}
+          onPress={() => { setHistoryTab("doctor"); setOpenKey(null); }}
         >
           <MaterialIcons
             name="local-hospital"
@@ -436,7 +546,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
 
         <TouchableOpacity
           style={[styles.tab, historyTab === "ai" && styles.activeTab]}
-          onPress={() => setHistoryTab("ai")}
+          onPress={() => { setHistoryTab("ai"); setOpenKey(null); }}
         >
           <MaterialIcons
             name="psychology"
@@ -458,6 +568,111 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
     return (
       <>
         <TabHeader />
+
+       
+
+     
+        {historyTab === "doctor" ? (
+          <>
+            <Button style={{alignSelf:'flex-end'}} onPress={() => setUnitsModal(true)}>
+              <MaterialIcons name="menu" size={25} color="#4285F4" />
+            </Button>
+            <Modal 
+              visible={unitsModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setUnitsModal(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setUnitsModal(false)}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Unit Settings</Text>
+                    <TouchableOpacity 
+                      style={styles.modalCloseButton}
+                      onPress={() => setUnitsModal(false)}
+                    >
+                      <MaterialIcons name="close" size={24} color="#666666" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.unitPanel}>
+                    <UnitDropdown
+                      rowKey="w"
+                      label="Weight"
+                      value={dispWeight}
+                      onChange={(v) => setDispWeight(v as any)}
+                      options={[
+                        { label: "kg", value: "kg" },
+                        { label: "lb", value: "lb" },
+                        { label: "st", value: "st" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1050}
+                    />
+                    <UnitDropdown
+                      rowKey="h"
+                      label="Height"
+                      value={dispHeight}
+                      onChange={(v) => setDispHeight(v as any)}
+                      options={[
+                        { label: "cm", value: "cm" },
+                        { label: "in", value: "in" },
+                        { label: "ft", value: "ft" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1040}
+                    />
+                    <UnitDropdown
+                      rowKey="t"
+                      label="Temperature"
+                      value={dispTemp}
+                      onChange={(v) => setDispTemp(v as any)}
+                      options={[
+                        { label: "°C", value: "C" },
+                        { label: "°F", value: "F" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1030}
+                    />
+                    <UnitDropdown
+                      rowKey="bp"
+                      label="Blood Pressure"
+                      value={dispBP}
+                      onChange={(v) => setDispBP(v as any)}
+                      options={[
+                        { label: "mmHg", value: "mmHg" },
+                        { label: "kPa", value: "kPa" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1020}
+                    />
+                    <UnitDropdown
+                      rowKey="s"
+                      label="Blood Sugar"
+                      value={dispSugar}
+                      onChange={(v) => setDispSugar(v as any)}
+                      options={[
+                        { label: "mg/dL", value: "mg_dL" },
+                        { label: "mmol/L", value: "mmol_L" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1010}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </>
+        ) : null}
+
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -504,10 +719,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
 
   const renderProfile = () => (
     <ScrollView contentContainerStyle={styles.profileScrollContent}>
-      {/* ... unchanged profile sections ... */}
-      <View style={styles.profileBlock}>
-        {/* Basic Information, Contact, Medical, Emergency sections unchanged */}
-      </View>
+      <View style={styles.profileBlock} />
     </ScrollView>
   );
 
@@ -536,7 +748,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // styles unchanged from your file
+  // original styles preserved
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   header: {
     flexDirection: "row",
@@ -606,6 +818,57 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   loadingText: { marginTop: 16, fontSize: 16, color: "#666666" },
+
+  
+  unitPanel: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E8E8E8",
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  dropdownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  panelLabel: { fontSize: 14, fontWeight: "600", color: "#333" },
+  dropdownButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  dropdownButtonActive: { borderColor: "#4285F4" },
+  dropdownButtonText: { fontSize: 14, color: "#333", fontWeight: "600", marginRight: 2 },
+  dropdownList: {
+    position: "absolute",
+    top: 36,
+    right: 0,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    overflow: "hidden",
+    elevation: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    zIndex: 9999,
+  },
+  dropdownItem: { paddingVertical: 8, paddingHorizontal: 12, minWidth: 90 },
+  dropdownItemSelected: { backgroundColor: "#E9F2FF" },
+  dropdownItemText: { fontSize: 14, color: "#333" },
+  dropdownItemTextSelected: { color: "#1a73e8", fontWeight: "700" },
 
   scrollContent: { padding: 20, paddingBottom: 20 },
 
@@ -736,37 +999,6 @@ const styles = StyleSheet.create({
 
   profileScrollContent: { paddingBottom: 20 },
   profileBlock: { gap: 20 },
-  profileSection: {
-    backgroundColor: "#FAFAFA",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E8E8E8",
-    padding: 16,
-  },
-  profileSectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333333",
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8E8E8",
-  },
-  profileRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  profileLabel: { color: "#666666", fontSize: 14, fontWeight: "500", flex: 1 },
-  profileValue: {
-    color: "#333333",
-    fontSize: 14,
-    flexShrink: 1,
-    textAlign: "right",
-    flex: 2,
-  },
 
   centered: {
     flex: 1,
@@ -779,6 +1011,49 @@ const styles = StyleSheet.create({
     color: "#666666",
     fontSize: 16,
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    maxWidth: 400,
+    width: '100%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
