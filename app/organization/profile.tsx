@@ -87,7 +87,7 @@ export default function OrganizationProfile() {
         mode="contained"
         style={styles.signOut}
         contentStyle={styles.signOutContent}
-        buttonColor={COLORS.warning}
+        buttonColor={COLORS.primary}
         textColor={COLORS.surface}
         onPress={handleSignOut}
       >
