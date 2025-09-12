@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router'
 import { supabase, Visit } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
+import UnitDropdown from '~/components/UnitDropdown'
 
 /** ----------------- Unit helpers (local, no storage) ----------------- */
 type WeightUnit = 'kg' | 'lb' | 'st'
@@ -31,31 +32,6 @@ function convertTemp(x: number, from: TempUnit, to: TempUnit) { if (!Number.isFi
 function convertBP(x: number, from: BPUnit, to: BPUnit) { if (!Number.isFinite(x) || from === to) return x; if (from === 'mmHg' && to === 'kPa') return x * KPA_PER_MMHG; if (from === 'kPa' && to === 'mmHg') return x / KPA_PER_MMHG; return x }
 function convertSugar(x: number, from: SugarUnit, to: SugarUnit) { if (!Number.isFinite(x) || from === to) return x; if (from === 'mg_dL' && to === 'mmol_L') return x * MMOL_PER_MGDL; if (from === 'mmol_L' && to === 'mg_dL') return x / MMOL_PER_MGDL; return x }
 
-/** ----------------------------- UI bits ----------------------------- */
-type UnitChip = { label: string; value: string }
-const UnitChips = ({ options, value, onChange }: { options: UnitChip[], value: string, onChange: (v: any) => void }) => (
-  <View style={styles.unitRow}>
-    {options.map(o => (
-      <TouchableOpacity
-        key={o.value}
-        onPress={() => onChange(o.value)}
-        style={[
-          styles.unitChip,
-          value === o.value && styles.unitChipSelected
-        ]}
-      >
-        <Text
-          style={[
-            styles.unitChipText,
-            value === o.value && styles.unitChipTextSelected
-          ]}
-        >
-          {o.label}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-)
 
 const EditVisitScreen: React.FC = () => {
   const router = useRouter()
@@ -223,7 +199,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={weight} onChangeText={setWeight} placeholder={weightPh} />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'kg',value:'kg'},{label:'lb',value:'lb'},{label:'st',value:'st'}]}
                 value={wUnit}
                 onChange={(v)=>onChangeUnit('weight', v as WeightUnit)}
@@ -237,7 +213,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={height} onChangeText={setHeight} placeholder={heightPh} />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'cm',value:'cm'},{label:'in',value:'in'},{label:'ft',value:'ft'}]}
                 value={hUnit}
                 onChange={(v)=>onChangeUnit('height', v as HeightUnit)}
@@ -251,7 +227,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={systolicBp} onChangeText={setSystolicBp} placeholder={sysPh} keyboardType="numeric" />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]}
                 value={bpUnit}
                 onChange={(v)=>onChangeUnit('bloodPressure', v as BPUnit)}
@@ -265,7 +241,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={diastolicBp} onChangeText={setDiastolicBp} placeholder={diaPh} keyboardType="numeric" />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]}
                 value={bpUnit}
                 onChange={(v)=>onChangeUnit('bloodPressure', v as BPUnit)}
@@ -284,7 +260,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={temperature} onChangeText={setTemperature} placeholder={tempPh} />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'°C',value:'C'},{label:'°F',value:'F'}]}
                 value={tUnit}
                 onChange={(v)=>onChangeUnit('temperature', v as TempUnit)}
@@ -298,7 +274,7 @@ const EditVisitScreen: React.FC = () => {
               <View style={styles.inputFlex}>
                 <CleanTextInput label="" value={bloodSugar} onChangeText={setBloodSugar} placeholder={sugarPh} />
               </View>
-              <UnitChips
+              <UnitDropdown
                 options={[{label:'mg/dL',value:'mg_dL'},{label:'mmol/L',value:'mmol_L'}]}
                 value={sUnit}
                 onChange={(v)=>onChangeUnit('bloodSugar', v as SugarUnit)}
@@ -388,30 +364,6 @@ const styles = StyleSheet.create({
   },
   inputFlex: {
     flex: 1
-  },
-  unitRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexShrink: 0
-  },
-  unitChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FFFFFF'
-  },
-  unitChipSelected: {
-    backgroundColor: '#1A73E8',
-    borderColor: '#1A73E8'
-  },
-  unitChipText: {
-    color: '#222',
-    fontSize: 13
-  },
-  unitChipTextSelected: {
-    color: '#FFFFFF'
   },
   actionButtons: {
     flexDirection: 'row',

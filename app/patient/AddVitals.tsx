@@ -9,6 +9,7 @@ import { supabase, Patient } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
 import { getCurrentLocation } from '../../utils/location'
+import UnitDropdown from '~/components/UnitDropdown'
 
 /** --- converters (canonical: kg, cm, mmHg, °C, mg/dL) --- */
 const LB_PER_KG = 2.2046226218
@@ -43,28 +44,6 @@ async function reverseGeocodeName(lat: number, lon: number): Promise<string | nu
   } catch { return null }
 }
 
-/** small inline unit chips */
-type ChipOpt<T extends string> = { label: string; value: T }
-function UnitChips<T extends string>({
-  options, value, onChange,
-}: { options: ChipOpt<T>[]; value: T; onChange: (v: T) => void }) {
-  return (
-    <View style={styles.chipsRow}>
-      {options.map(opt => {
-        const active = opt.value === value
-        return (
-          <TouchableOpacity
-            key={opt.value}
-            onPress={() => onChange(opt.value)}
-            style={[styles.chip, active && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-          </TouchableOpacity>
-        )
-      })}
-    </View>
-  )
-}
 
 const AddVitalsScreen: React.FC = () => {
   const { userProfile } = useAuth()
@@ -221,7 +200,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={weightPh}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'kg',value:'kg'},{label:'lb',value:'lb'},{label:'st',value:'st'}]}
               value={weightU}
               onChange={swapWeightUnit}
@@ -239,7 +218,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={heightPh}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'cm',value:'cm'},{label:'in',value:'in'},{label:'ft',value:'ft'}]}
               value={heightU}
               onChange={swapHeightUnit}
@@ -257,7 +236,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={bpU === 'mmHg' ? '120' : fmt(120 / MMHG_PER_KPA)}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]}
               value={bpU}
               onChange={swapBpUnit}
@@ -275,7 +254,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={bpU === 'mmHg' ? '80' : fmt(80 / MMHG_PER_KPA)}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]}
               value={bpU}
               onChange={swapBpUnit}
@@ -306,7 +285,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={tempPh}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'°C',value:'C'},{label:'°F',value:'F'}]}
               value={tempU}
               onChange={swapTempUnit}
@@ -324,7 +303,7 @@ const AddVitalsScreen: React.FC = () => {
                 placeholder={sugarPh}
               />
             </View>
-            <UnitChips
+            <UnitDropdown
               options={[{label:'mg/dL',value:'mg_dL'},{label:'mmol/L',value:'mmol_L'}]}
               value={sugarU}
               onChange={swapSugarUnit}
@@ -467,31 +446,6 @@ const styles = StyleSheet.create({
   },
   inputGrow: {
     flex: 1
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    marginLeft: 8
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D7E3FF',
-    marginLeft: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  chipActive: {
-    backgroundColor: '#2F6DF6',
-    borderColor: '#2F6DF6'
-  },
-  chipText: {
-    fontSize: 12,
-    color: '#3A69C1'
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600'
   },
   actionButtons: {
     flexDirection: 'row',

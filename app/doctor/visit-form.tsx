@@ -9,6 +9,7 @@ import { supabase, Patient } from '../../lib/supabase'
 import CleanTextInput from '~/components/input/cleanTextInput'
 import { showToast } from '~/utils/toast'
 import { getCurrentLocation } from '../../utils/location'
+import UnitDropdown from '~/components/UnitDropdown'
 
 /** converters (canonical: kg, cm, mmHg, °C, mg/dL) */
 const LB_PER_KG = 2.2046226218
@@ -28,21 +29,6 @@ const toMgdl=(v:number,u:'mg_dL'|'mmol_L')=>u==='mg_dL'?v:v*MGDL_PER_MMOLL
 const fromMgdl=(mgdl:number,u:'mg_dL'|'mmol_L')=>u==='mg_dL'?mgdl:mgdl/MGDL_PER_MMOLL
 const fmt=(n:number,d=2)=>Number.isNaN(n)?'':n.toFixed(d).replace(/\.?0+$/,'')
 
-type ChipOpt<T extends string> = { label: string; value: T }
-function UnitChips<T extends string>({ options, value, onChange }: { options: ChipOpt<T>[]; value: T; onChange: (v: T) => void }) {
-  return (
-    <View style={styles.chipsRow}>
-      {options.map(opt => {
-        const active = opt.value === value
-        return (
-          <TouchableOpacity key={opt.value} onPress={() => onChange(opt.value)} style={[styles.chip, active && styles.chipActive]}>
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
-          </TouchableOpacity>
-        )
-      })}
-    </View>
-  )
-}
 
 /** reverse geocode label if needed */
 async function reverseGeocodeName(lat:number, lon:number): Promise<string|null> {
@@ -210,7 +196,7 @@ const VisitFormScreen: React.FC = () => {
             <View style={styles.inputGrow}>
               <CleanTextInput label="Weight" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder={weightPh} />
             </View>
-            <UnitChips options={[{label:'kg',value:'kg'},{label:'lb',value:'lb'},{label:'st',value:'st'}]} value={weightU} onChange={swapWeightUnit} />
+            <UnitDropdown options={[{label:'kg',value:'kg'},{label:'lb',value:'lb'},{label:'st',value:'st'}]} value={weightU} onChange={swapWeightUnit} />
           </View>
 
           {/* Height */}
@@ -218,7 +204,7 @@ const VisitFormScreen: React.FC = () => {
             <View style={styles.inputGrow}>
               <CleanTextInput label="Height" value={height} onChangeText={setHeight} keyboardType="decimal-pad" placeholder={heightPh} />
             </View>
-            <UnitChips options={[{label:'cm',value:'cm'},{label:'in',value:'in'},{label:'ft',value:'ft'}]} value={heightU} onChange={swapHeightUnit} />
+            <UnitDropdown options={[{label:'cm',value:'cm'},{label:'in',value:'in'},{label:'ft',value:'ft'}]} value={heightU} onChange={swapHeightUnit} />
           </View>
 
           {/* Systolic */}
@@ -232,7 +218,7 @@ const VisitFormScreen: React.FC = () => {
                 placeholder={bpU==='mmHg'?'120':fmt(120/MMHG_PER_KPA)}
               />
             </View>
-            <UnitChips options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]} value={bpU} onChange={swapBpUnit} />
+            <UnitDropdown options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]} value={bpU} onChange={swapBpUnit} />
           </View>
 
           {/* Diastolic */}
@@ -246,7 +232,7 @@ const VisitFormScreen: React.FC = () => {
                 placeholder={bpU==='mmHg'?'80':fmt(80/MMHG_PER_KPA)}
               />
             </View>
-            <UnitChips options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]} value={bpU} onChange={swapBpUnit} />
+            <UnitDropdown options={[{label:'mmHg',value:'mmHg'},{label:'kPa',value:'kPa'}]} value={bpU} onChange={swapBpUnit} />
           </View>
 
           {/* Heart Rate */}
@@ -261,7 +247,7 @@ const VisitFormScreen: React.FC = () => {
             <View style={styles.inputGrow}>
               <CleanTextInput label="Temperature" value={temperature} onChangeText={setTemperature} keyboardType="decimal-pad" placeholder={tempPh} />
             </View>
-            <UnitChips options={[{label:'°C',value:'C'},{label:'°F',value:'F'}]} value={tempU} onChange={swapTempUnit} />
+            <UnitDropdown options={[{label:'°C',value:'C'},{label:'°F',value:'F'}]} value={tempU} onChange={swapTempUnit} />
           </View>
 
           {/* Blood Sugar */}
@@ -269,7 +255,7 @@ const VisitFormScreen: React.FC = () => {
             <View style={styles.inputGrow}>
               <CleanTextInput label="Blood Sugar" value={bloodSugar} onChangeText={setBloodSugar} keyboardType="decimal-pad" placeholder={sugarPh} />
             </View>
-            <UnitChips options={[{label:'mg/dL',value:'mg_dL'},{label:'mmol/L',value:'mmol_L'}]} value={sugarU} onChange={swapSugarUnit} />
+            <UnitDropdown options={[{label:'mg/dL',value:'mg_dL'},{label:'mmol/L',value:'mmol_L'}]} value={sugarU} onChange={swapSugarUnit} />
           </View>
 
           {/* Oxygen Saturation */}
@@ -372,31 +358,6 @@ const styles = StyleSheet.create({
   },
   inputGrow: {
     flex: 1
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    marginLeft: 8
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D7E3FF',
-    marginLeft: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  chipActive: {
-    backgroundColor: '#2F6DF6',
-    borderColor: '#2F6DF6'
-  },
-  chipText: {
-    fontSize: 12,
-    color: '#3A69C1'
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600'
   },
   actionButtons: {
     flexDirection: 'row',

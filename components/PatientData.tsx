@@ -6,6 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Pressable,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native";
 import { Text, Button, ActivityIndicator } from "react-native-paper";
@@ -142,6 +143,7 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
   const [dispTemp, setDispTemp] = useState<"C" | "F">("C");
   const [dispSugar, setDispSugar] = useState<"mg_dL" | "mmol_L">("mg_dL");
   const [openKey, setOpenKey] = useState<string | null>(null); // only one dropdown open
+  const [unitsModal, setUnitsModal] = useState(false);
 
   useEffect(() => {
     if (patient_id) loadPatientData(patient_id);
@@ -560,76 +562,107 @@ const PatientDetailsWrapper: React.FC<PatientDetailsWrapperProps> = ({
         <TabHeader />
 
        
+
+     
         {historyTab === "doctor" ? (
-          <View style={styles.unitPanel}>
-            <UnitDropdown
-              rowKey="w"
-              label="Weight"
-              value={dispWeight}
-              onChange={(v) => setDispWeight(v as any)}
-              options={[
-                { label: "kg", value: "kg" },
-                { label: "lb", value: "lb" },
-                { label: "st", value: "st" },
-              ]}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-              zIndexBase={1050}
-            />
-            <UnitDropdown
-              rowKey="h"
-              label="Height"
-              value={dispHeight}
-              onChange={(v) => setDispHeight(v as any)}
-              options={[
-                { label: "cm", value: "cm" },
-                { label: "in", value: "in" },
-                { label: "ft", value: "ft" },
-              ]}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-              zIndexBase={1040}
-            />
-            <UnitDropdown
-              rowKey="t"
-              label="Temperature"
-              value={dispTemp}
-              onChange={(v) => setDispTemp(v as any)}
-              options={[
-                { label: "°C", value: "C" },
-                { label: "°F", value: "F" },
-              ]}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-              zIndexBase={1030}
-            />
-            <UnitDropdown
-              rowKey="bp"
-              label="Blood Pressure"
-              value={dispBP}
-              onChange={(v) => setDispBP(v as any)}
-              options={[
-                { label: "mmHg", value: "mmHg" },
-                { label: "kPa", value: "kPa" },
-              ]}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-              zIndexBase={1020}
-            />
-            <UnitDropdown
-              rowKey="s"
-              label="Blood Sugar"
-              value={dispSugar}
-              onChange={(v) => setDispSugar(v as any)}
-              options={[
-                { label: "mg/dL", value: "mg_dL" },
-                { label: "mmol/L", value: "mmol_L" },
-              ]}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-              zIndexBase={1010}
-            />
-          </View>
+          <>
+            <Button style={{alignSelf:'flex-end'}} onPress={() => setUnitsModal(true)}>
+              <MaterialIcons name="menu" size={25} color="#4285F4" />
+            </Button>
+            <Modal 
+              visible={unitsModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setUnitsModal(false)}
+            >
+              <TouchableOpacity 
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setUnitsModal(false)}
+              >
+                <View style={styles.modalContainer}>
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Unit Settings</Text>
+                    <TouchableOpacity 
+                      style={styles.modalCloseButton}
+                      onPress={() => setUnitsModal(false)}
+                    >
+                      <MaterialIcons name="close" size={24} color="#666666" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.unitPanel}>
+                    <UnitDropdown
+                      rowKey="w"
+                      label="Weight"
+                      value={dispWeight}
+                      onChange={(v) => setDispWeight(v as any)}
+                      options={[
+                        { label: "kg", value: "kg" },
+                        { label: "lb", value: "lb" },
+                        { label: "st", value: "st" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1050}
+                    />
+                    <UnitDropdown
+                      rowKey="h"
+                      label="Height"
+                      value={dispHeight}
+                      onChange={(v) => setDispHeight(v as any)}
+                      options={[
+                        { label: "cm", value: "cm" },
+                        { label: "in", value: "in" },
+                        { label: "ft", value: "ft" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1040}
+                    />
+                    <UnitDropdown
+                      rowKey="t"
+                      label="Temperature"
+                      value={dispTemp}
+                      onChange={(v) => setDispTemp(v as any)}
+                      options={[
+                        { label: "°C", value: "C" },
+                        { label: "°F", value: "F" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1030}
+                    />
+                    <UnitDropdown
+                      rowKey="bp"
+                      label="Blood Pressure"
+                      value={dispBP}
+                      onChange={(v) => setDispBP(v as any)}
+                      options={[
+                        { label: "mmHg", value: "mmHg" },
+                        { label: "kPa", value: "kPa" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1020}
+                    />
+                    <UnitDropdown
+                      rowKey="s"
+                      label="Blood Sugar"
+                      value={dispSugar}
+                      onChange={(v) => setDispSugar(v as any)}
+                      options={[
+                        { label: "mg/dL", value: "mg_dL" },
+                        { label: "mmol/L", value: "mmol_L" },
+                      ]}
+                      openKey={openKey}
+                      setOpenKey={setOpenKey}
+                      zIndexBase={1010}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          </>
         ) : null}
 
         <ScrollView
@@ -970,6 +1003,49 @@ const styles = StyleSheet.create({
     color: "#666666",
     fontSize: 16,
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    maxWidth: 400,
+    width: '100%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

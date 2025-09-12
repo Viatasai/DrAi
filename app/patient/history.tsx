@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable } from 'react-native'
-import { Text, FAB, ActivityIndicator } from 'react-native-paper'
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Modal } from 'react-native'
+import { Text, FAB, ActivityIndicator, Button } from 'react-native-paper'
 import { MaterialIcons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
@@ -136,8 +136,8 @@ const PatientHistoryScreen: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const patient = userProfile as Patient
+  const [unitsModal, setunitsModal] = useState(false)
 
-  
   const [du, setDu] = useState<DisplayUnits>({
     weight: 'kg',
     height: 'cm',
@@ -145,7 +145,7 @@ const PatientHistoryScreen: React.FC = () => {
     bloodPressure: 'mmHg',
     bloodSugar: 'mg_dL',
   })
-  
+
   const [openKey, setOpenKey] = useState<string | null>(null)
 
   useEffect(() => {
@@ -373,7 +373,34 @@ const PatientHistoryScreen: React.FC = () => {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {renderDisplayToolbar()}
+      <Button style={{alignSelf:'flex-end'}}  onPress={()=>setunitsModal(true)} >
+        <MaterialIcons name="menu" size={25} color="#4285F4" />
+      </Button>
+      <Modal 
+        visible={unitsModal} 
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setunitsModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setunitsModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Unit Settings</Text>
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setunitsModal(false)}
+              >
+                <MaterialIcons name="close" size={24} color="#666666" />
+              </TouchableOpacity>
+            </View>
+            {renderDisplayToolbar()}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {filteredVisits.length ? (
         filteredVisits.map(renderVisitCard)
@@ -484,7 +511,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E8E8E8',
   },
 
- 
+
   unitPanel: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -598,7 +625,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100
   },
 
-  
+
   visitCard: {
     backgroundColor: '#FAFAFA',
     borderRadius: 12,
@@ -761,6 +788,49 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: '#4285F4'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    maxWidth: 400,
+    width: '100%',
+    maxHeight: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })
 
